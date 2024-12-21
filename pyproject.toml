@@ -1,0 +1,49 @@
+[project]
+name = "simputils-config"
+dynamic = ["version"]
+authors = [
+  { name="Ivan Ponomarev", email="i.ponomarev@pandev.tech" },
+]
+description = "Simple Configs Manager"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pyyaml",
+    "python-magic",
+    "python-dotenv"
+]
+license = {file = "LICENSE"}
+keywords = ["simputils", "config", "files", "utils", "framework", "simple"]
+
+[build-system]
+requires = [
+    "setuptools>=64",
+    "setuptools_scm>=8"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src/"]
+include = ["simputils.config"]
+
+
+[tool.setuptools_scm]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "flake8"
+]
+pydantic = [
+    "pydantic"
+]
+
+[project.urls]
+Homepage = "https://github.com/PandaHugMonster/py-simputils-config"
+Issues = "https://github.com/PandaHugMonster/py-simputils-config/issues"
