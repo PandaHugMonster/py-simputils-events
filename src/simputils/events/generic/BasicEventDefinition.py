@@ -1,27 +1,31 @@
-from abc import abstractmethod, ABCMeta
-from typing import TYPE_CHECKING
+import builtins
+from abc import ABCMeta, abstractmethod
 
-if TYPE_CHECKING:  # pragma: no cover
-	# noinspection PyUnresolvedReferences
-	from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
 class BasicEventDefinition(metaclass=ABCMeta):
 
-	_runtime: "BasicRuntime | None" = None
+	_data: dict = None
 
-	@property
 	@abstractmethod
-	def name(self) -> str:
-		pass  # pragma: no cover
+	def get_name(self) -> str:
+		pass
 
-	@property
-	def runtime(self) -> "BasicRuntime | None":
-		return self._runtime
+	def get_type(self) -> str | None:
+		return None
+
+	def get_tags(self) -> list[str] | None:
+		return None
+
+	def get_data(self) -> dict | None:
+		return None
+
+	def get_runtime(self) -> builtins.type[BasicRuntime] | BasicRuntime | None:
+		return None
+
+	def __init__(self, data: dict = None):
+		self._data = data
 
 	def __str__(self):
-		return self.name
-
-	def __init__(self, runtime: "BasicRuntime | None" = None):
-		if runtime is not None:
-			self._runtime = runtime
+		return self.get_name()

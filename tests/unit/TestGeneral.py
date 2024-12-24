@@ -3,8 +3,8 @@ from threading import Lock, Thread
 
 from simputils.events.GenericEvent import GenericEvent
 from simputils.events.base import on_event
-from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
-from simputils.events.generic.BasicEventObject import BasicEventObject
+from simputils.events.generic.BasicEventDefinition import BasicEvent
+from simputils.events.generic.BasicEventObject import BasicEventingObject
 from simputils.events.runtimes.DefaultParallelRuntime import DefaultParallelRuntime
 from simputils.events.runtimes.DefaultSequentialRuntime import DefaultSequentialRuntime
 
@@ -12,7 +12,7 @@ generic_lock = Lock()
 resulting_list = []
 
 
-class MyEventObj(BasicEventObject):
+class MyEventObj(BasicEventingObject):
 
 	EVENT_BEFORE = "before"
 	EVENT_DURING = "during"
@@ -25,7 +25,7 @@ class MyEventObj(BasicEventObject):
 		super().__init__()
 
 	@property
-	def defined_events(self) -> list[BasicEventDefinition]:
+	def defined_events(self) -> list[BasicEvent]:
 		return [
 			GenericEvent(self.EVENT_BEFORE),
 			GenericEvent(self.EVENT_DURING),

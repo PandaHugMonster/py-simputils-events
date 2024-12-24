@@ -1,14 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
-from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
+from simputils.events.SimpleEvent import SimpleEvent
 
 
 class BasicRuntime(metaclass=ABCMeta):
 
 	@abstractmethod
-	def run(self, event: BasicEventDefinition, callback: Callable, **kwargs):
+	def run(self, event: SimpleEvent, callback: Callable):
 		pass  # pragma: no cover
 
-	def __call__(self, event: BasicEventDefinition, callback: Callable, **kwargs):
-		return self.run(event, callback, **kwargs)
+	def __call__(self, event: SimpleEvent, callback: Callable):
+		return self.run(event, callback)
