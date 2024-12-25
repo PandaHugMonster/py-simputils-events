@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
+from uuid import UUID, uuid1
 
 
 class SimpleEvent:
 
+	_uid: UUID = None
 	_name: str = None
 	_type: str | None = None
 	_tags: str | None = None
@@ -12,6 +14,10 @@ class SimpleEvent:
 
 	_created_at: datetime = None
 	_processed_at: datetime = None
+
+	@property
+	def uid(self) -> UUID:
+		return self._uid
 
 	@property
 	def name(self) -> str:
@@ -67,6 +73,7 @@ class SimpleEvent:
 		type: str = None,
 		tags: str = None,
 	):
+		self._uid = uuid1()
 		self._created_at = datetime.now(timezone.utc)
 		self._name = name
 		self._data = data

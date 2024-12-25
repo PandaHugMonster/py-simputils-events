@@ -1,9 +1,12 @@
+import functools
+from collections import OrderedDict
 from copy import copy
 from inspect import isclass
 from typing import Callable
 
 from simputils.events.AttachedEventHandler import AttachedEventHandler
 from simputils.events.SimpleEvent import SimpleEvent
+from simputils.events.auxiliary.EventsResult import EventsResult
 from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
 from simputils.events.generic.BasicEventHandler import BasicEventHandler
 from simputils.events.generic.BasicRuntime import BasicRuntime
@@ -14,6 +17,14 @@ class EventingMixin:
 	default_runtime: type[BasicRuntime] | BasicRuntime = DefaultSequentialRuntime()
 	_mapped_runtimes: dict[str, type[BasicRuntime] | BasicRuntime] = None
 	_attached_event_handlers: dict[str, list[AttachedEventHandler]] = None
+	_events_result: EventsResult = None
+
+	def permitted_events(self):
+		return None
+
+	@property
+	def results(self) -> EventsResult | None:
+		return copy(self._events_result)
 
 	def __init__(self, default_runtime: type[BasicRuntime] | BasicRuntime = None, *args, **kwargs):
 		if default_runtime:
@@ -83,8 +94,8 @@ class EventingMixin:
 		type: str = None,
 		tags: list[str] = None,
 		runtime: type[BasicRuntime] | BasicRuntime = None,
-	):
-		event_chain_result = {}
+	) -> EventsResult | None:
+		self._events_result = EventsResult()
 
 		event_ref = None
 		if issubclass(event_name, BasicEventDefinition):
@@ -94,7 +105,7 @@ class EventingMixin:
 			event_name = event_ref.get_name()
 
 		data = copy(data) if data is not None else {}
-		if event_name in self._attached_event_handlers:
+		if event_name in self._attached_event_handlers and self._attached_event_handlers[event_name]:
 			for aeh in self._attached_event_handlers[event_name]:
 				if not self._check_filter(aeh, type, tags):
 					continue
@@ -107,13 +118,31 @@ class EventingMixin:
 
 				event = SimpleEvent(event_name, merged_data, type, copy(tags))
 
-				if aeh.event_name not in event_chain_result or (aeh.event_name in event_chain_result and event_chain_result[aeh.event_name]):
+				sub_res = current_runtime.run(event, aeh, self._events_result)
 
-					sub_res = current_runtime.run(event, aeh)
+				# self._events_result.append(event, sub_res)
+				if not sub_res:
+					break
 
-					if sub_res is None:
-						sub_res = True
-					if not isinstance(sub_res, bool):
-						raise Exception("Event handler can return only bool or None values")
+			return self._events_result
 
-					event_chain_result[aeh.event_name] = sub_res
+		return None
+
+	def on_event(
+		self,
+		event_name: str | type,
+		data: dict = None,
+		type: str = None,
+		tags: list[str] = None,
+		runtime: type[BasicRuntime] | BasicRuntime = None
+	):
+		def decorator(func):
+
+			self.attach(event_name, func, data, type=type, tags=tags, runtime=runtime)
+
+			@functools.wraps(func)
+			def wrapper(*args, **kwargs):
+				return func(*args, **kwargs)  # pragma: no cover
+			return wrapper
+
+		return decorator

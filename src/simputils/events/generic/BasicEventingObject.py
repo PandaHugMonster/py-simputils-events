@@ -1,5 +1,5 @@
 import inspect
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
 from simputils.events.auxiliary.EventingMixin import EventingMixin
 from simputils.events.base import on_event
@@ -8,6 +8,10 @@ from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
 class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
+
+	@abstractmethod
+	def permitted_events(self):
+		pass
 
 	def __init__(self, default_runtime: type[BasicRuntime] | BasicRuntime = None, *args, **kwargs):
 		super().__init__(default_runtime, *args, **kwargs)
