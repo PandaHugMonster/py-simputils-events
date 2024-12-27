@@ -19,7 +19,13 @@ class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
 		member_names = dir(self)
 		for member_name in member_names:
 			member = getattr(self, member_name)
-			if inspect.ismethod(member) and "decor_type" in member.__dict__ and member.__dict__["decor_type"] == "simputils" and member.__dict__["decorated_with"] == on_event.__name__:
+			check = (
+				inspect.ismethod(member)
+				and "decor_type" in member.__dict__
+				and member.__dict__["decor_type"] == "simputils"
+				and member.__dict__["decorated_with"] == on_event.__name__
+			)
+			if check:
 				data = member.__dict__["decorated_data"]
 				data["handler"] = member
 				if isinstance(data["event_name"], type):
