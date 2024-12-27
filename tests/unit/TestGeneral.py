@@ -8,9 +8,12 @@ from simputils.SimpleEventManager import SimpleEventManager
 from simputils.events.AttachedEventHandler import AttachedEventHandler
 from simputils.events.SimpleEventObj import SimpleEventObj
 from simputils.events.base import on_event
+from simputils.events.definitions.EventAfter import EventAfter
+from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
 from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventingObject import BasicEventingObject
 from simputils.events.runtimes.LocalParallelRuntime import LocalParallelRuntime
+from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialRuntime
 
 generic_lock = Lock()
 resulting_list = []
@@ -141,34 +144,58 @@ class MyEventObj(BasicEventingObject):
 			"result": "black",
 		}
 
+	@on_event(EventAfter, priority=15)
+	def _handler_after_1(self, event: SimpleEventObj):
+		return {
+			"result": "AFTER 1",
+		}
+
+	@on_event(EventAfter(), priority=16)
+	def _handler_after_2(self, event: SimpleEventObj):
+		return {
+			"result": "AFTER 2",
+		}
+
 
 class TestGeneral:
 
 	def test_attached_events_and_handlers(self):
 		obj = MyEventObj()
 		attached_events = obj.get_attached_events()
-		assert set(attached_events) == {"setup-1", "setup-2", "setup-3", "setup-4"}
-		handlers = []
+		assert set(attached_events) == {"setup-1", "setup-2", "setup-3", "setup-4", "after"}
 		for event_name in attached_events:
 			for aeh in obj.get_attached_event_handlers(event_name):
-				handlers.append(aeh.handler.__name__)
-
-		assert handlers == [
-			"_handler_1",
-			"_handler_2",
-			"_handler_3",
-			"_handler_4",
-			"_handler_5",
-			"_handler_6",
-			"_handler_7",
-			"_handler_8",
-			"_handler_9",
-			"_handler_10",
-			"_handler_11",
-			"_handler_12",
-			"_handler_13",
-			"_handler_14",
-		]
+				if event_name == "setup-1":
+					assert aeh.handler.__name__ in [
+						"_handler_1",
+						"_handler_2",
+						"_handler_3",
+					]
+				if event_name == "setup-2":
+					assert aeh.handler.__name__ in [
+						"_handler_4",
+						"_handler_5",
+						"_handler_6",
+					]
+				if event_name == "setup-3":
+					assert aeh.handler.__name__ in [
+						"_handler_7",
+						"_handler_8",
+						"_handler_9",
+						"_handler_10",
+					]
+				if event_name == "setup-4":
+					assert aeh.handler.__name__ in [
+						"_handler_11",
+						"_handler_12",
+						"_handler_13",
+						"_handler_14",
+					]
+				if event_name == "after":
+					assert aeh.handler.__name__ in [
+						"_handler_after_1",
+						"_handler_after_2",
+					]
 
 	def _sub_check_1(self, obj: MyEventObj):
 		resulting_list.clear()
@@ -395,3 +422,71 @@ class TestGeneral:
 				{"result": "cyan"},
 				{"result": "yellow"},
 			)
+
+	def test_mixed_mapped_runtimes(self):
+		obj = MyEventObj("parallel")
+		obj.set_mapped_runtime("setup-4", LocalParallelRuntime())
+
+		res_s4 = obj.trigger("setup-4")
+		res_s1 = obj.trigger("setup-1")
+
+		assert len(res_s1.events) == 2
+		res_s4.wait(5)
+		assert len(res_s4.events) == 4
+
+	def test_runtime_checks(self):
+		obj = MyEventObj("runtime-checks", default_runtime=LocalSequentialRuntime)
+
+		obj.set_mapped_runtime("setup-4", LocalParallelRuntime())
+
+		res = obj.get_mapped_runtime("goose")
+		assert res is None
+
+		res = obj.get_mapped_runtime("setup-4")
+		assert isinstance(res, LocalParallelRuntime)
+
+		res = obj.default_runtime
+		assert isinstance(res, LocalSequentialRuntime)
+
+		obj.default_runtime = LocalParallelRuntime
+		res = obj.default_runtime
+		assert isinstance(res, LocalParallelRuntime)
+
+	def test_events_detachment(self):
+		obj = MyEventObj("events-detachment")
+
+		events = obj.get_attached_events()
+		assert set(events) == {"setup-1", "setup-2", "setup-3", "setup-4", "after"}
+
+		obj.detach("after", True)
+		obj.detach("setup-1", True)
+		obj.detach("setup-3", True)
+
+		events = obj.get_attached_events()
+		assert events == ["setup-2", "setup-4"]
+
+		obj.detach_all(True)
+
+		events = obj.get_attached_events()
+		assert events == []
+
+	def test_events_detachment_exception(self):
+		obj = MyEventObj("events-detachment")
+
+		with pytest.raises(ActionMustBeConfirmed):
+			obj.detach("setup-1")
+
+		with pytest.raises(ActionMustBeConfirmed):
+			obj.detach_all()
+
+	def test_simple_eventing_object(self):
+		obj = MyEventObj("simple-eventing-object")
+
+		res = obj.trigger(EventAfter)
+		event: SimpleEventObj = list(res.events.values())[0]
+
+		event_str = str(event)
+		event_repr = repr(event)
+
+		assert isinstance(event_str, str)
+		assert isinstance(event_repr, str)

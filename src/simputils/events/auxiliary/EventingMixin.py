@@ -1,4 +1,5 @@
 import functools
+import inspect
 from collections import OrderedDict
 from copy import copy
 from inspect import isclass
@@ -20,19 +21,48 @@ from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialRunt
 
 class EventingMixin:
 
-	default_runtime: type[BasicRuntime] | BasicRuntime = LocalSequentialRuntime()
+	_default_runtime: type[BasicRuntime] | BasicRuntime = LocalSequentialRuntime()
 
 	_mapped_runtimes: dict[str, type[BasicRuntime] | BasicRuntime] = None
 	_attached_event_handlers: dict[str, OrderedDict[int, list[AttachedEventHandler]]] = None
 	_events_result: EventsResult = None
 
+	@property
+	def default_runtime(self) -> BasicRuntime:
+		return self._default_runtime
+
+	@default_runtime.setter
+	def default_runtime(self, val: type[BasicRuntime] | BasicRuntime):
+		self._default_runtime = self._prepare_runtime(val)
+
+	def __init__(self, default_runtime: type[BasicRuntime] | BasicRuntime = None, *args, **kwargs):
+		if default_runtime:
+			self.default_runtime = default_runtime
+		self._attached_event_handlers = {}
+
+	def _prepare_runtime(self, runtime: type[BasicRuntime] | BasicRuntime):
+		if inspect.isclass(runtime):
+			return runtime()
+		return runtime
+
+	def set_mapped_runtime(self, event_name: str, runtime: type[BasicRuntime] | BasicRuntime):
+		if self._mapped_runtimes is None:
+			self._mapped_runtimes = {}
+		self._mapped_runtimes[event_name] = self._prepare_runtime(runtime)
+
+	def get_mapped_runtime(self, event_name: str):
+		if event_name not in self._mapped_runtimes:
+			return None
+		return self._mapped_runtimes[event_name]
+
 	def get_permitted_events(self) -> list[BasicEventDefinition | type[BasicEventDefinition]] | list | None:
 		return None
 
 	def get_attached_events(self) -> list[str]:
-		return natsort.natsorted(
-			list(self._attached_event_handlers.keys())
-		)
+		res = []
+		for item in self._attached_event_handlers.keys():
+			res.append(item)
+		return natsort.natsorted(res)
 
 	def _sort_key_callback(self, item: list[str, AttachedEventHandler]):
 		return int(item[0])
@@ -40,7 +70,9 @@ class EventingMixin:
 	def _sort_group(self, res):
 		# noinspection PyTypeChecker
 		return natsort.natsorted(
-			res, key=self._sort_key_callback
+			res,
+			key=self._sort_key_callback,
+			alg=natsort.ns.INT,
 		)
 
 	def get_attached_event_handlers(self, event_name: str) -> list[AttachedEventHandler] | list:
@@ -70,29 +102,15 @@ class EventingMixin:
 	def results(self) -> EventsResult | None:
 		return copy(self._events_result)
 
-	def __init__(self, default_runtime: type[BasicRuntime] | BasicRuntime = None, *args, **kwargs):
-		if default_runtime:
-			self.default_runtime = default_runtime
-		self._attached_event_handlers = {}
-
-	def set_mapped_runtime(self, event_name: str, runtime: type[BasicRuntime] | BasicRuntime):
-		if self._mapped_runtimes is None:
-			self._mapped_runtimes = {}
-		self._mapped_runtimes[event_name] = runtime
-
-	def get_mapped_runtime(self, event_name: str):
-		if event_name not in self._mapped_runtimes:
-			return None
-		return self._mapped_runtimes[event_name]
-
 	def _get_event_definition(
 		self,
 		event_name: str | type[BasicEventDefinition] | BasicEventDefinition
 	) -> tuple[BasicEventDefinition, str]:
 		event_ref = None
 		if not isinstance(event_name, str):
-			if issubclass(event_name, BasicEventDefinition):
+			if isclass(event_name) and issubclass(event_name, BasicEventDefinition):
 				event_name = event_name()
+
 			if isinstance(event_name, BasicEventDefinition):
 				event_ref = event_name
 				event_name = event_ref.get_name()
@@ -136,7 +154,7 @@ class EventingMixin:
 
 		if event_ref:
 			type = event_ref.get_type() or type
-			runtime = event_ref.get_runtime() or runtime
+			runtime = self._prepare_runtime(event_ref.get_runtime() or runtime)
 
 			sub_data = copy(event_ref.get_data() or {})
 			sub_data.update(data or {})
@@ -254,7 +272,7 @@ class EventingMixin:
 					priority,
 					type,
 					tags,
-					runtime,
+					self._prepare_runtime(runtime),
 					data,
 				)
 
@@ -285,7 +303,7 @@ class EventingMixin:
 		return decorator
 
 	def detach(self, event_name: str | type, confirm: bool = False):
-		if not confirm:
+		if confirm is not True:
 			raise ActionMustBeConfirmed("\"Detaching event action\" must be explicitly confirmed")
 
 		event_ref, event_name = self._get_event_definition(event_name)
@@ -293,7 +311,7 @@ class EventingMixin:
 			del self._attached_event_handlers[event_name]
 
 	def detach_all(self, confirm: bool = False):
-		if not confirm:
+		if confirm is not True:
 			raise ActionMustBeConfirmed("\"Detaching all events\" action must be explicitly confirmed")
 
 		event_names = self.get_attached_events()

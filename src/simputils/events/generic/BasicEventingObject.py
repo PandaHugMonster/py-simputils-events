@@ -11,7 +11,7 @@ class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
 
 	@abstractmethod
 	def get_permitted_events(self):
-		pass
+		pass  # pragma: no cover
 
 	def __init__(
 		self,

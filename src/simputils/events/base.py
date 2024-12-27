@@ -1,10 +1,11 @@
 import functools
 
+from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
 from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
 def on_event(
-	event_name: str | type,
+	event_name: str | type[BasicEventDefinition] | BasicEventDefinition,
 	data: dict = None,
 	priority: int = 0,
 	type: str = None,

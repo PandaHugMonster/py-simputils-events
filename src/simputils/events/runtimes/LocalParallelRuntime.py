@@ -12,7 +12,7 @@ class LocalParallelRuntime(BasicRuntime):
 
 	def _sub_callback(self, event: SimpleEventObj, callback: Callable, events_result: EventsResult):
 		res = callback(event)
-		events_result.set_result(event, res)
+		events_result.set_status(event, res)
 
 	def run(self, event: SimpleEventObj, callback: Callable, events_result: EventsResult) -> bool | None:
 		events_result.append(event)

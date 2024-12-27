@@ -46,22 +46,22 @@ class EventsResult:
 		self._events = OrderedDict()
 		self._results = OrderedDict()
 
-	def append(self, event: SimpleEventObj, result: bool = None):
+	def append(self, event: SimpleEventObj, status: bool = None):
 		uid = str(event.obj_uid)
 
 		with self._events_lock:
 			self._events[uid] = event
 
-		self._set_status(uid, result)
+		self._set_status(uid, status)
 
-	def set_result(self, event: SimpleEventObj, result: bool):
+	def set_status(self, event: SimpleEventObj, status: bool):
 		uid = str(event.obj_uid)
 
 		if uid not in self._events:
 			with self._events_lock:
 				self._events[uid] = event
 
-		self._set_status(uid, result)
+		self._set_status(uid, status)
 
 	def wait(self, timeout=None):
 		if self._events:
@@ -69,9 +69,9 @@ class EventsResult:
 
 		return self
 
-	def _set_status(self, uid: str, result: bool):
+	def _set_status(self, uid: str, status: bool):
 		with self._results_lock:
-			self._results[uid] = result
+			self._results[uid] = status
 			self._flag_control()
 
 	def _flag_control(self):
