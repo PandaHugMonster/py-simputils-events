@@ -1,0 +1,48 @@
+
+[build-system]
+requires = [
+    "setuptools>=64",
+    "setuptools_scm>=8"
+]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
+[project]
+name = "simputils-events"
+description = "Simple Dev Event Manager"
+
+license = {file = "LICENSE"}
+
+readme = "README.md"
+keywords = ["simputils", "config", "files", "utils", "framework", "simple"]
+authors = [
+  { name="Ivan Ponomarev", email="i.ponomarev@pandev.tech" },
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">=3.10"
+dynamic = ["version", "dependencies"]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "flake8"
+]
+pydantic = [
+    "pydantic"
+]
+
+[project.urls]
+Homepage = "https://github.com/PandaHugMonster/py-simputils-events"
+Issues = "https://github.com/PandaHugMonster/py-simputils-events/issues"
