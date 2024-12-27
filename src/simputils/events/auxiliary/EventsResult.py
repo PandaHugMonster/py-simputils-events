@@ -52,7 +52,7 @@ class EventsResult:
 		with self._events_lock:
 			self._events[uid] = event
 
-		self._set_result(uid, result)
+		self._set_status(uid, result)
 
 	def set_result(self, event: SimpleEventObj, result: bool):
 		uid = str(event.obj_uid)
@@ -61,14 +61,15 @@ class EventsResult:
 			with self._events_lock:
 				self._events[uid] = event
 
-		self._set_result(uid, result)
+		self._set_status(uid, result)
 
 	def wait(self, timeout=None):
-		self._is_done_flag.wait(timeout)
+		if self._events:
+			self._is_done_flag.wait(timeout)
 
 		return self
 
-	def _set_result(self, uid: str, result: bool):
+	def _set_status(self, uid: str, result: bool):
 		with self._results_lock:
 			self._results[uid] = result
 			self._flag_control()

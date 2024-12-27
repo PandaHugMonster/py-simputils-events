@@ -20,7 +20,7 @@ class AttachedEventHandler(RunnableObject):
 
 	@property
 	def event_name(self) -> str:
-		return self._event_name
+		return self._event_name  # pragma: no cover
 
 	@property
 	def event_type(self) -> str | None:
@@ -63,7 +63,7 @@ class AttachedEventHandler(RunnableObject):
 		res = self._handler(event)
 
 		if isinstance(res, dict):
-			event.set_result_data(res)
+			event.set_result(res)
 			res = None
 
 		if isinstance(res, bool):

@@ -8,4 +8,4 @@ class BasicEventHandler(RunnableObject, metaclass=ABCMeta):
 
 	@abstractmethod
 	def run(self, event: SimpleEventObj):
-		pass
+		pass  # pragma: no cover

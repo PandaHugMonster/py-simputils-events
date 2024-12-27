@@ -10,23 +10,23 @@ import natsort
 from simputils.events.AttachedEventHandler import AttachedEventHandler
 from simputils.events.SimpleEventObj import SimpleEventObj
 from simputils.events.auxiliary.EventsResult import EventsResult
+from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
+from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
 from simputils.events.generic.BasicEventHandler import BasicEventHandler
 from simputils.events.generic.BasicRuntime import BasicRuntime
-from simputils.events.runtimes.DefaultSequentialRuntime import DefaultSequentialRuntime
+from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialRuntime
 
 
 class EventingMixin:
 
-	default_runtime: type[BasicRuntime] | BasicRuntime = DefaultSequentialRuntime()
+	default_runtime: type[BasicRuntime] | BasicRuntime = LocalSequentialRuntime()
 
 	_mapped_runtimes: dict[str, type[BasicRuntime] | BasicRuntime] = None
-
 	_attached_event_handlers: dict[str, OrderedDict[int, list[AttachedEventHandler]]] = None
-
 	_events_result: EventsResult = None
 
-	def permitted_events(self):
+	def get_permitted_events(self) -> list[BasicEventDefinition | type[BasicEventDefinition]] | list | None:
 		return None
 
 	def get_attached_events(self) -> list[str]:
@@ -38,6 +38,7 @@ class EventingMixin:
 		return int(item[0])
 
 	def _sort_group(self, res):
+		# noinspection PyTypeChecker
 		return natsort.natsorted(
 			res, key=self._sort_key_callback
 		)
@@ -84,6 +85,42 @@ class EventingMixin:
 			return None
 		return self._mapped_runtimes[event_name]
 
+	def _get_event_definition(
+		self,
+		event_name: str | type[BasicEventDefinition] | BasicEventDefinition
+	) -> tuple[BasicEventDefinition, str]:
+		event_ref = None
+		if not isinstance(event_name, str):
+			if issubclass(event_name, BasicEventDefinition):
+				event_name = event_name()
+			if isinstance(event_name, BasicEventDefinition):
+				event_ref = event_name
+				event_name = event_ref.get_name()
+
+		return event_ref, event_name
+
+	def _check_permitted_events(self, event_ref, event_name) -> True:
+		permitted_events = self.get_permitted_events()
+
+		if permitted_events is not None:
+
+			if not permitted_events:
+				raise NotPermittedEvent(
+					"Eventing is forbidden on this object (self.permitted_events() returned an empty list)"
+				)
+
+			perm_event_names = []
+			for item in permitted_events:
+				perm_event_ref, perm_event_name = self._get_event_definition(item)
+				perm_event_names.append(perm_event_name)
+
+			if event_name not in perm_event_names:
+				raise NotPermittedEvent(
+					f"Event \"{event_name}\" is not in the list of permitted: {perm_event_names}"
+				)
+
+		return True
+
 	def attach(
 		self,
 		event_name: str | type,
@@ -94,15 +131,10 @@ class EventingMixin:
 		tags: list[str] = None,
 		runtime: type[BasicRuntime] | BasicRuntime = None,
 	):
-		event_ref = None
-		if not isinstance(event_name, str):
-			if issubclass(event_name, BasicEventDefinition):
-				event_name = event_name()
-			if isinstance(event_name, BasicEventDefinition):
-				event_ref = event_name
+		event_ref, event_name = self._get_event_definition(event_name)
+		self._check_permitted_events(event_ref, event_name)
 
 		if event_ref:
-			event_name = event_ref.get_name()
 			type = event_ref.get_type() or type
 			runtime = event_ref.get_runtime() or runtime
 
@@ -125,8 +157,6 @@ class EventingMixin:
 			self._attached_event_handlers[event_name][priority] = []
 		self._attached_event_handlers[event_name][priority].append(attached_event_handler)
 
-		pass
-
 	def _check_filter(self, aeh: AttachedEventHandler, type: str, tags: list[str]) -> bool:
 		if type and aeh.event_type and aeh.event_type != type:
 			return False
@@ -136,7 +166,8 @@ class EventingMixin:
 
 		return True
 
-	def _generate_event_object(self,
+	def _generate_event_object(
+		self,
 		name: str,
 		event_uid: UUID,
 		data: dict = None,
@@ -156,6 +187,46 @@ class EventingMixin:
 	def _generate_event_uid(self) -> UUID:
 		return uuid1()
 
+	def _trigger_process_attached_event_handler(
+		self,
+		event_name: str,
+		attached_handlers: list[AttachedEventHandler],
+		event_uid: UUID,
+		priority: int,
+		type: str,
+		tags: list[str],
+		runtime: BasicRuntime,
+		data: dict
+	):
+		for aeh in attached_handlers:
+			if not self._check_filter(aeh, type, tags):
+				continue
+
+			merged_data = aeh.data or {}
+			current_runtime = aeh.runtime or runtime or self.default_runtime
+			if isclass(current_runtime):
+				current_runtime = current_runtime()
+			merged_data.update(data)
+
+			aeh: AttachedEventHandler
+			_type = aeh.event_type or type
+			_tags = aeh.event_tags or tags
+			event = self._generate_event_object(
+				event_name,
+				copy(event_uid),
+				merged_data,
+				priority,
+				_type,
+				copy(_tags)
+			)
+
+			status = current_runtime(event, aeh, self._events_result)
+
+			if status is not None and not status:
+				return False
+
+		return True
+
 	def trigger(
 		self,
 		event_name: str | type,
@@ -167,12 +238,7 @@ class EventingMixin:
 		event_uid = self._generate_event_uid()
 		self._events_result = EventsResult(event_uid)
 
-		if not isinstance(event_name, str):
-			if issubclass(event_name, BasicEventDefinition):
-				event_name = event_name()
-			if isinstance(event_name, BasicEventDefinition):
-				event_ref = event_name
-				event_name = event_ref.get_name()
+		event_ref, event_name = self._get_event_definition(event_name)
 
 		data = copy(data) if data is not None else {}
 
@@ -181,41 +247,22 @@ class EventingMixin:
 				self._attached_event_handlers[event_name].items()
 			)
 			for priority, attached_handlers in attached_event_handlers:
-				failed = False
-				for aeh in attached_handlers:
-					if not self._check_filter(aeh, type, tags):
-						continue
+				succeeded = self._trigger_process_attached_event_handler(
+					event_name,
+					attached_handlers,
+					event_uid,
+					priority,
+					type,
+					tags,
+					runtime,
+					data,
+				)
 
-					merged_data = aeh.data or {}
-					current_runtime = aeh.runtime or runtime or self.default_runtime
-					if isclass(current_runtime):
-						current_runtime = current_runtime()
-					merged_data.update(data)
-
-					aeh: AttachedEventHandler
-					_type = aeh.event_type or type
-					_tags = aeh.event_tags or tags
-					event = self._generate_event_object(
-						event_name,
-						copy(event_uid),
-						merged_data,
-						priority,
-						_type,
-						copy(_tags)
-					)
-
-					status = current_runtime.run(event, aeh, self._events_result)
-
-					if status is not None and not status:
-						failed = True
-						break
-
-				if failed:
+				if not succeeded:
 					break
 
-			return self._events_result
-
-		return None
+		return self._events_result
+		# return None
 
 	def on_event(
 		self,
@@ -236,3 +283,19 @@ class EventingMixin:
 			return wrapper
 
 		return decorator
+
+	def detach(self, event_name: str | type, confirm: bool = False):
+		if not confirm:
+			raise ActionMustBeConfirmed("\"Detaching event action\" must be explicitly confirmed")
+
+		event_ref, event_name = self._get_event_definition(event_name)
+		if event_name in self._attached_event_handlers:
+			del self._attached_event_handlers[event_name]
+
+	def detach_all(self, confirm: bool = False):
+		if not confirm:
+			raise ActionMustBeConfirmed("\"Detaching all events\" action must be explicitly confirmed")
+
+		event_names = self.get_attached_events()
+		for event_name in event_names:
+			self.detach(event_name, confirm)

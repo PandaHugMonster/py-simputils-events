@@ -5,7 +5,7 @@ from simputils.events.auxiliary.EventsResult import EventsResult
 from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
-class DefaultSequentialRuntime(BasicRuntime):
+class LocalSequentialRuntime(BasicRuntime):
 
 	def run(self, event: SimpleEventObj, callback: Callable, events_result: EventsResult):
 		res = callback(event)

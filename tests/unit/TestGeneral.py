@@ -1,10 +1,16 @@
 import inspect
 from threading import Lock
+from time import sleep
 
+import pytest
+
+from simputils.SimpleEventManager import SimpleEventManager
 from simputils.events.AttachedEventHandler import AttachedEventHandler
 from simputils.events.SimpleEventObj import SimpleEventObj
 from simputils.events.base import on_event
+from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventingObject import BasicEventingObject
+from simputils.events.runtimes.LocalParallelRuntime import LocalParallelRuntime
 
 generic_lock = Lock()
 resulting_list = []
@@ -13,13 +19,15 @@ resulting_list = []
 class MyEventObj(BasicEventingObject):
 
 	_type: str = None
+	_permitted_events = None
 
-	def __init__(self, type: str = None):
+	def __init__(self, type: str = None, permitted_events: list = None, *args, **kwargs):
 		self._type = type
-		super().__init__()
+		self._permitted_events = permitted_events
+		super().__init__(*args, **kwargs)
 
-	def permitted_events(self):
-		pass
+	def get_permitted_events(self):
+		return self._permitted_events
 
 	@on_event("setup-1", priority=1, type="type-1", tags=["tag-1", "tag-1.1"])
 	def _handler_1(self, event: SimpleEventObj):
@@ -64,7 +72,7 @@ class MyEventObj(BasicEventingObject):
 	def _handler_7(self, event: SimpleEventObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
-		event.set_result_data({
+		event.set_result({
 			"result": "red",
 		})
 
@@ -80,7 +88,7 @@ class MyEventObj(BasicEventingObject):
 	def _handler_9(self, event: SimpleEventObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
-		event.set_result_data({
+		event.set_result({
 			"result": "violet",
 		})
 
@@ -92,10 +100,46 @@ class MyEventObj(BasicEventingObject):
 	def _handler_10(self, event: SimpleEventObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
-		event.set_result_data({
+		event.set_result({
 			"result": "white",
 		})
 		return False
+
+	@on_event("setup-4", priority=11)
+	def _handler_11(self, event: SimpleEventObj):
+		sleep(1)
+		handler_name = inspect.stack()[0][3]
+		resulting_list.append(handler_name)
+		return {
+			"result": "cyan",
+		}
+
+	@on_event("setup-4", priority=12)
+	def _handler_12(self, event: SimpleEventObj):
+		sleep(1)
+		handler_name = inspect.stack()[0][3]
+		resulting_list.append(handler_name)
+		return {
+			"result": "magenta",
+		}
+
+	@on_event("setup-4", priority=13)
+	def _handler_13(self, event: SimpleEventObj):
+		sleep(1)
+		handler_name = inspect.stack()[0][3]
+		resulting_list.append(handler_name)
+		return {
+			"result": "yellow",
+		}
+
+	@on_event("setup-4", priority=14)
+	def _handler_14(self, event: SimpleEventObj):
+		sleep(1)
+		handler_name = inspect.stack()[0][3]
+		resulting_list.append(handler_name)
+		return {
+			"result": "black",
+		}
 
 
 class TestGeneral:
@@ -103,7 +147,7 @@ class TestGeneral:
 	def test_attached_events_and_handlers(self):
 		obj = MyEventObj()
 		attached_events = obj.get_attached_events()
-		assert set(attached_events) == {"setup-1", "setup-2", "setup-3"}
+		assert set(attached_events) == {"setup-1", "setup-2", "setup-3", "setup-4"}
 		handlers = []
 		for event_name in attached_events:
 			for aeh in obj.get_attached_event_handlers(event_name):
@@ -120,6 +164,10 @@ class TestGeneral:
 			"_handler_8",
 			"_handler_9",
 			"_handler_10",
+			"_handler_11",
+			"_handler_12",
+			"_handler_13",
+			"_handler_14",
 		]
 
 	def _sub_check_1(self, obj: MyEventObj):
@@ -131,13 +179,21 @@ class TestGeneral:
 		sub = list(res.events.values())
 
 		event: SimpleEventObj = sub[0]
+		event1 = event
 		assert event.name == "setup-1"
 		assert event.status is True
 		assert event.type == "type-1"
 		assert event.tags == ["tag-1", "tag-1.1"]
 
 		event: SimpleEventObj = sub[1]
+		event2 = event
 		assert event.status is False
+
+		assert str(event1.event_uid) == str(event2.event_uid)
+		assert str(event1.obj_uid) != str(event2.obj_uid)
+
+		assert event1.priority == 1
+		assert event2.priority == 2
 
 	def _sub_check_2(self, obj: MyEventObj):
 		resulting_list.clear()
@@ -249,3 +305,93 @@ class TestGeneral:
 		expected_index = 10
 		priority, name = self._get_priority_and_handler_name(obj, event_name, 3)
 		assert priority == expected_index and name == f"_handler_{expected_index}"
+
+	def test_check_non_permitted_events(self):
+
+		obj = MyEventObj(permitted_events=["setup-1", "setup-2"], on_event_disabled=True)
+
+		with pytest.raises(NotPermittedEvent):
+			obj.attach("setup-3", obj._handler_10)
+
+	def test_events_disallowed(self):
+
+		obj = MyEventObj(permitted_events=[], on_event_disabled=True)
+
+		with pytest.raises(NotPermittedEvent):
+			obj.attach("setup-1", obj._handler_1)
+
+	def test_event_manager_is_singleton(self):
+		em1 = SimpleEventManager()
+		em2 = SimpleEventManager()
+		assert em1 is em2
+
+	def test_event_manager_on_event_decorator(self):
+		em = SimpleEventManager()
+
+		@em.on_event("event-1")
+		def handler_1(event: SimpleEventObj):
+			return {
+				"result": "success",
+				"name": handler_1.__name__,
+			}
+
+		@em.on_event("event-1")
+		def handler_2(event: SimpleEventObj):
+			return {
+				"result": "success",
+				"name": handler_2.__name__,
+			}
+
+		@em.on_event("event-1")
+		def handler_3(event: SimpleEventObj):
+			event.set_result({
+				"result": "fail",
+				"name": handler_3.__name__,
+			})
+			return False
+
+		res = em.trigger("event-1").wait(5)
+
+		sub = list(res.events.values())
+
+		event: SimpleEventObj = sub[0]
+		assert event.status is True
+		assert event.result == {
+			"result": "success",
+			"name": "handler_1",
+		}
+
+		event: SimpleEventObj = sub[1]
+		assert event.status is True
+		assert event.result == {
+			"result": "success",
+			"name": "handler_2",
+		}
+
+		event: SimpleEventObj = sub[2]
+		assert event.status is False
+		assert event.result == {
+			"result": "fail",
+			"name": "handler_3",
+		}
+
+	def test_parallel_events(self):
+		obj = MyEventObj("parallel")
+		obj.default_runtime = LocalParallelRuntime()
+
+		res = obj.trigger("setup-4")
+
+		for uid, res_data in res.results.items():
+			assert res_data is None
+
+		res.wait(5)
+
+		for uid, event in res.events.items():
+			assert event is not None
+
+			assert event.result in (
+				{"result": "magenta"},
+				{"result": "black"},
+				{"result": "cyan"},
+				{"result": "yellow"},
+			)

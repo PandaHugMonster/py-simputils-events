@@ -1,7 +1,4 @@
-import functools
-
 from simputils.events.auxiliary.EventingMixin import EventingMixin
-from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
 class RawEventManager(EventingMixin):

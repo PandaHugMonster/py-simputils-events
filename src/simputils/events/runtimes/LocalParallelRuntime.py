@@ -6,7 +6,7 @@ from simputils.events.auxiliary.EventsResult import EventsResult
 from simputils.events.generic.BasicRuntime import BasicRuntime
 
 
-class DefaultParallelRuntime(BasicRuntime):
+class LocalParallelRuntime(BasicRuntime):
 
 	threading_callback: type[Thread] | Callable = Thread
 

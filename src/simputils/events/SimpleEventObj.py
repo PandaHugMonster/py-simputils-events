@@ -72,7 +72,7 @@ class SimpleEventObj:
 	def result(self) -> dict:
 		return self._result
 
-	def set_result_data(self, val: dict):
+	def set_result(self, val: dict):
 		if self._processed_at is None:
 			self._processed_at = datetime.now(timezone.utc)
 		self._result = val
