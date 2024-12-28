@@ -9,7 +9,7 @@ from uuid import uuid1, UUID
 import natsort
 
 from simputils.events.AttachedEventHandler import AttachedEventHandler
-from simputils.events.SimpleEventObj import SimpleEventObj
+from simputils.events.SimpleEventingObj import SimpleEventingObj
 from simputils.events.auxiliary.EventsResult import EventsResult
 from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
 from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
@@ -192,8 +192,8 @@ class EventingMixin:
 		priority: int = 0,
 		type: str = None,
 		tags: str = None
-	) -> SimpleEventObj:
-		return SimpleEventObj(
+	) -> SimpleEventingObj:
+		return SimpleEventingObj(
 			name,
 			event_uid,
 			data,
@@ -254,7 +254,7 @@ class EventingMixin:
 		runtime: type[BasicRuntime] | BasicRuntime = None,
 	) -> EventsResult | None:
 		event_uid = self._generate_event_uid()
-		self._events_result = EventsResult(event_uid)
+		self._events_result = EventsResult(event_uid, event_name)
 
 		event_ref, event_name = self._get_event_definition(event_name)
 

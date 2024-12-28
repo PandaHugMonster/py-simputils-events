@@ -1,7 +1,7 @@
 from copy import copy
 from enum import Enum
 
-from simputils.events.SimpleEventObj import SimpleEventObj
+from simputils.events.SimpleEventingObj import SimpleEventingObj
 from simputils.events.auxiliary.RunnableObject import RunnableObject
 from simputils.events.generic.BasicEventHandler import BasicEventHandler
 from simputils.events.generic.BasicRuntime import BasicRuntime
@@ -58,7 +58,7 @@ class AttachedEventHandler(RunnableObject):
 		self._event_tags = event_tags
 		self._runtime = runtime
 
-	def run(self, event: SimpleEventObj):
+	def run(self, event: SimpleEventingObj):
 		# NOTE  Result from handler. Can be only: None, True, False, dict
 		res = self._handler(event)
 

@@ -24,11 +24,11 @@ class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
 
 		if not on_event_disabled:
 			for member_name in dir(self):
-				data = self._on_event_check_and_prepare(member_name)
+				data = self._get_decorated_data(member_name)
 				if data is not None:
 					self.attach(**data)
 
-	def _on_event_check_and_prepare(self, member_name) -> dict | None:
+	def _get_decorated_data(self, member_name) -> dict | None:
 		member = getattr(self, member_name)
 		check = (
 			inspect.ismethod(member)

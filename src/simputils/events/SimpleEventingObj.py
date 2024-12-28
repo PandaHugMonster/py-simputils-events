@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid1
 
 
-class SimpleEventObj:
+class SimpleEventingObj:
 
 	_event_uid: UUID = None
 	_name: str = None

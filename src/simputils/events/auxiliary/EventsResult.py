@@ -2,22 +2,21 @@ from collections import OrderedDict
 from threading import Event, Lock
 from uuid import UUID
 
-from simputils.events.SimpleEventObj import SimpleEventObj
+from simputils.events.SimpleEventingObj import SimpleEventingObj
 
 
 class EventsResult:
 
+	STATUS_UNKNOWN = "unknown"
 	STATUS_FAIL = "fail"
 	STATUS_SUCCESS = "success"
 
 	_event_uid: UUID = None
+	_event_name: str = None
 
-	_events: OrderedDict[str, SimpleEventObj] = None
-	_results: OrderedDict[str, bool] = None
+	_events: OrderedDict[str, SimpleEventingObj] = None
 
-	_events_lock: Lock = None
-	_results_lock: Lock = None
-
+	_updated_lock: Lock = None
 	_is_done_flag: Event = None
 
 	@property
@@ -26,42 +25,35 @@ class EventsResult:
 
 	@property
 	def status(self) -> str:
+		if None in self._get_event_statuses():
+			return self.STATUS_UNKNOWN
 		return self.STATUS_SUCCESS if self else self.STATUS_FAIL
 
 	@property
-	def events(self) -> OrderedDict[str, SimpleEventObj]:
+	def events(self) -> OrderedDict[str, SimpleEventingObj]:
 		return self._events
 
-	@property
-	def results(self) -> OrderedDict[str, bool]:
-		return self._results
-
-	def __init__(self, event_uid: UUID):
+	def __init__(self, event_uid: UUID, event_name: str):
 		self._event_uid = event_uid
-		self._events_lock = Lock()
-		self._results_lock = Lock()
+		self._event_name = event_name
 
+		self._updated_lock = Lock()
 		self._is_done_flag = Event()
-
 		self._events = OrderedDict()
-		self._results = OrderedDict()
 
-	def append(self, event: SimpleEventObj, status: bool = None):
+	def append(self, event: SimpleEventingObj, status: bool = None):
+		self.set_status(event, status)
+
+	def set_status(self, event: SimpleEventingObj, status: bool | None):
 		uid = str(event.obj_uid)
 
-		with self._events_lock:
-			self._events[uid] = event
-
-		self._set_status(uid, status)
-
-	def set_status(self, event: SimpleEventObj, status: bool):
-		uid = str(event.obj_uid)
-
-		if uid not in self._events:
-			with self._events_lock:
+		with self._updated_lock:
+			if status is not None:
+				event.status = status
+			if uid not in self._events:
 				self._events[uid] = event
 
-		self._set_status(uid, status)
+			self._flag_control()
 
 	def wait(self, timeout=None):
 		if self._events:
@@ -69,21 +61,22 @@ class EventsResult:
 
 		return self
 
-	def _set_status(self, uid: str, status: bool):
-		with self._results_lock:
-			self._results[uid] = status
-			self._flag_control()
+	def _get_event_statuses(self):
+		res = []
+		for event in self.events.values():
+			res.append(event.status)
+		return res
 
 	def _flag_control(self):
-		if None in self._results.values():
+		if None in self._get_event_statuses():
 			self._is_done_flag.clear()
 		else:
 			self._is_done_flag.set()
 
 	def __bool__(self):
-		return all(self._results.values())
+		return all(self._get_event_statuses())
 
-	def __str__(self):
+	def __str__(self):  # pragma: no cover
 		events_count = len(self._events)
 		events_word = "event" if events_count == 1 else "events"
 		return f"{self.status} ({events_count} {events_word})"
