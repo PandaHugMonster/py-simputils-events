@@ -1,13 +1,13 @@
 from typing import Callable
 
-from simputils.events.SimpleEventingObj import SimpleEventingObj
-from simputils.events.auxiliary.EventsResult import EventsResult
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.SimpleEvent import SimpleEvent
+from simputils.events.auxiliary.EventResults import EventResults
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
-class LocalSequentialRuntime(BasicRuntime):
+class LocalSequentialEventRuntime(BasicEventRuntime):
 
-	def run(self, event: SimpleEventingObj, callback: Callable, events_result: EventsResult):
+	def run(self, event: SimpleEvent, callback: Callable, events_result: EventResults):
 		res = callback(event)
 		events_result.append(event, res)
 		return res

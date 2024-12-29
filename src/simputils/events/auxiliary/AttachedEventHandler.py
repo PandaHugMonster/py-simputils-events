@@ -1,10 +1,10 @@
 from copy import copy
 from enum import Enum
 
-from simputils.events.SimpleEventingObj import SimpleEventingObj
+from simputils.events.SimpleEvent import SimpleEvent
 from simputils.events.auxiliary.RunnableObject import RunnableObject
 from simputils.events.generic.BasicEventHandler import BasicEventHandler
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
 class AttachedEventHandler(RunnableObject):
@@ -16,7 +16,7 @@ class AttachedEventHandler(RunnableObject):
 	_handler: BasicEventHandler = None
 	_data: dict = None
 
-	_runtime: BasicRuntime = None
+	_runtime: BasicEventRuntime = None
 	_priority: int = None
 
 	@property
@@ -44,7 +44,7 @@ class AttachedEventHandler(RunnableObject):
 		return copy(self._data)
 
 	@property
-	def runtime(self) -> BasicRuntime:
+	def runtime(self) -> BasicEventRuntime:
 		return self._runtime
 
 	def __init__(
@@ -54,7 +54,7 @@ class AttachedEventHandler(RunnableObject):
 		data: dict = None,
 		event_type: str = None,
 		event_tags: list[str] = None,
-		runtime: BasicRuntime = None,
+		runtime: BasicEventRuntime = None,
 		priority: int = None,
 	):
 		self._event_name = event_name
@@ -65,7 +65,7 @@ class AttachedEventHandler(RunnableObject):
 		self._runtime = runtime
 		self._priority = priority
 
-	def run(self, event: SimpleEventingObj):
+	def run(self, event: SimpleEvent):
 		# NOTE  Result from handler. Can be only: None, True, False, dict
 		res = self._handler(event)
 

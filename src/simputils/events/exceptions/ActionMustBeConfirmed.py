@@ -1,5 +1,5 @@
-from simputils.events.generic.BasicEventsException import BasicEventsException
+from simputils.events.generic.BasicEventException import BasicEventException
 
 
-class ActionMustBeConfirmed(BasicEventsException):
+class ActionMustBeConfirmed(BasicEventException):
 	pass

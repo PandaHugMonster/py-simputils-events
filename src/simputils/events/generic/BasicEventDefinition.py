@@ -1,7 +1,7 @@
 import builtins
 from abc import ABCMeta, abstractmethod
 
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
 class BasicEventDefinition(metaclass=ABCMeta):
@@ -21,7 +21,7 @@ class BasicEventDefinition(metaclass=ABCMeta):
 	def get_data(self) -> dict | None:  # pragma: no cover
 		return None
 
-	def get_runtime(self) -> builtins.type[BasicRuntime] | BasicRuntime | None:  # pragma: no cover
+	def get_runtime(self) -> builtins.type[BasicEventRuntime] | BasicEventRuntime | None:  # pragma: no cover
 		return None
 
 	def __init__(self, data: dict = None):  # pragma: no cover

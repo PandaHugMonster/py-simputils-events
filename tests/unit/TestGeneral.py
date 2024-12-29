@@ -6,17 +6,17 @@ from uuid import UUID
 import pytest
 
 from simputils.events.SimpleEventManager import SimpleEventManager
-from simputils.events.AttachedEventHandler import AttachedEventHandler
-from simputils.events.SimpleEventingObj import SimpleEventingObj
-from simputils.events.auxiliary.EventsResult import EventsResult
+from simputils.events.auxiliary.AttachedEventHandler import AttachedEventHandler
+from simputils.events.SimpleEvent import SimpleEvent
+from simputils.events.auxiliary.EventResults import EventResults
 from simputils.events.base import on_event
 from simputils.events.definitions.EventAfter import EventAfter
 from simputils.events.definitions.EventBefore import EventBefore
 from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
 from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventingObject import BasicEventingObject
-from simputils.events.runtimes.LocalParallelRuntime import LocalParallelRuntime
-from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialRuntime
+from simputils.events.runtimes.LocalParallelRuntime import LocalParallelEventRuntime
+from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialEventRuntime
 
 generic_lock = Lock()
 resulting_list = []
@@ -36,38 +36,43 @@ class MyEventObj(BasicEventingObject):
 		return self._permitted_events
 
 	@on_event("setup-1", priority=1, type="type-1", tags=["tag-1", "tag-1.1", "tag-common"])
-	def _handler_1(self, event: SimpleEventingObj):
+	def _handler_1(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 
 	@on_event("setup-1", priority=2, tags=["tag-1", "tag-common"])
-	def _handler_2(self, event: SimpleEventingObj):
+	def _handler_2(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		return False
 
 	@on_event("setup-1", priority=3, type="type-1", tags=["tag-1", "tag-1.1"])
-	def _handler_3(self, event: SimpleEventingObj):
+	def _handler_3(self, event: SimpleEvent):
+		handler_name = inspect.stack()[0][3]
+		resulting_list.append(handler_name)
+
+	@on_event("setup-1", priority=4)
+	def _handler_3_a(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 
 	#
 
 	@on_event("setup-2", priority=4)
-	def _handler_4(self, event: SimpleEventingObj):
+	def _handler_4(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		return True
 
 	@on_event("setup-2", priority=5)
-	def _handler_5(self, event: SimpleEventingObj):
+	def _handler_5(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		event.status = False
 		return True
 
 	@on_event("setup-2", priority=6)
-	def _handler_6(self, event: SimpleEventingObj):
+	def _handler_6(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		event.status = False
@@ -75,7 +80,7 @@ class MyEventObj(BasicEventingObject):
 	#
 
 	@on_event("setup-3", priority=7)
-	def _handler_7(self, event: SimpleEventingObj):
+	def _handler_7(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		event.set_result({
@@ -83,7 +88,7 @@ class MyEventObj(BasicEventingObject):
 		})
 
 	@on_event("setup-3", priority=8)
-	def _handler_8(self, event: SimpleEventingObj):
+	def _handler_8(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		return {
@@ -91,7 +96,7 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event("setup-3", priority=9)
-	def _handler_9(self, event: SimpleEventingObj):
+	def _handler_9(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		event.set_result({
@@ -103,7 +108,7 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event("setup-3", priority=10)
-	def _handler_10(self, event: SimpleEventingObj):
+	def _handler_10(self, event: SimpleEvent):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		event.set_result({
@@ -114,7 +119,7 @@ class MyEventObj(BasicEventingObject):
 	#
 
 	@on_event("setup-4", priority=11)
-	def _handler_11(self, event: SimpleEventingObj):
+	def _handler_11(self, event: SimpleEvent):
 		sleep(1)
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
@@ -123,7 +128,7 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event("setup-4", priority=12)
-	def _handler_12(self, event: SimpleEventingObj):
+	def _handler_12(self, event: SimpleEvent):
 		sleep(1)
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
@@ -132,7 +137,7 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event("setup-4", priority=13)
-	def _handler_13(self, event: SimpleEventingObj):
+	def _handler_13(self, event: SimpleEvent):
 		sleep(1)
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
@@ -141,7 +146,7 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event("setup-4", priority=14)
-	def _handler_14(self, event: SimpleEventingObj):
+	def _handler_14(self, event: SimpleEvent):
 		sleep(1)
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
@@ -150,25 +155,25 @@ class MyEventObj(BasicEventingObject):
 		}
 
 	@on_event(EventAfter, priority=15)
-	def _handler_after_1(self, event: SimpleEventingObj):
+	def _handler_after_1(self, event: SimpleEvent):
 		return {
 			"result": "AFTER 1",
 		}
 
 	@on_event(EventAfter(), priority=16)
-	def _handler_after_2(self, event: SimpleEventingObj):
+	def _handler_after_2(self, event: SimpleEvent):
 		return {
 			"result": "AFTER 2",
 		}
 
 	@on_event(EventBefore, priority=17)
-	def _handler_before_1(self, event: SimpleEventingObj):
+	def _handler_before_1(self, event: SimpleEvent):
 		return {
 			"result": "BEFORE 1",
 		}
 
 	@on_event(EventBefore(), priority=18)
-	def _handler_before_2(self, event: SimpleEventingObj):
+	def _handler_before_2(self, event: SimpleEvent):
 		return {
 			"result": "BEFORE 2",
 		}
@@ -194,6 +199,7 @@ class TestGeneral:
 						"_handler_1",
 						"_handler_2",
 						"_handler_3",
+						"_handler_3_a",
 					]
 				if event_name == "setup-2":
 					assert aeh.handler.__name__ in [
@@ -229,14 +235,14 @@ class TestGeneral:
 
 		sub = list(res.events.values())
 
-		event: SimpleEventingObj = sub[0]
+		event: SimpleEvent = sub[0]
 		event1 = event
 		assert event.name == "setup-1"
 		assert event.status is True
 		assert event.type == "type-1"
 		assert event.tags == ["tag-1", "tag-1.1", 'tag-common']
 
-		event: SimpleEventingObj = sub[1]
+		event: SimpleEvent = sub[1]
 		event2 = event
 		assert event.status is False
 
@@ -254,13 +260,13 @@ class TestGeneral:
 
 		sub = list(res.events.values())
 
-		event: SimpleEventingObj = sub[0]
+		event: SimpleEvent = sub[0]
 		assert event.status is True
 
-		event: SimpleEventingObj = sub[1]
+		event: SimpleEvent = sub[1]
 		assert event.status is True
 
-		event: SimpleEventingObj = sub[2]
+		event: SimpleEvent = sub[2]
 		assert event.status is False
 
 	def _sub_check_3(self, obj: MyEventObj):
@@ -276,19 +282,19 @@ class TestGeneral:
 
 		sub = list(res.events.values())
 
-		event: SimpleEventingObj = sub[0]
+		event: SimpleEvent = sub[0]
 		assert event.status is True
 		assert event.result == {"result": "red"}
 
-		event: SimpleEventingObj = sub[1]
+		event: SimpleEvent = sub[1]
 		assert event.status is True
 		assert event.result == {"result": "green"}
 
-		event: SimpleEventingObj = sub[2]
+		event: SimpleEvent = sub[2]
 		assert event.status is True
 		assert event.result == {"result": "blue"}
 
-		event: SimpleEventingObj = sub[3]
+		event: SimpleEvent = sub[3]
 		assert event.status is False
 		assert event.result == {"result": "white"}
 
@@ -380,21 +386,21 @@ class TestGeneral:
 		em = SimpleEventManager()
 
 		@em.on_event("event-1")
-		def handler_1(event: SimpleEventingObj):
+		def handler_1(event: SimpleEvent):
 			return {
 				"result": "success",
 				"name": handler_1.__name__,
 			}
 
 		@em.on_event("event-1")
-		def handler_2(event: SimpleEventingObj):
+		def handler_2(event: SimpleEvent):
 			return {
 				"result": "success",
 				"name": handler_2.__name__,
 			}
 
 		@em.on_event("event-1")
-		def handler_3(event: SimpleEventingObj):
+		def handler_3(event: SimpleEvent):
 			event.set_result({
 				"result": "fail",
 				"name": handler_3.__name__,
@@ -405,21 +411,21 @@ class TestGeneral:
 
 		sub = list(res.events.values())
 
-		event: SimpleEventingObj = sub[0]
+		event: SimpleEvent = sub[0]
 		assert event.status is True
 		assert event.result == {
 			"result": "success",
 			"name": "handler_1",
 		}
 
-		event: SimpleEventingObj = sub[1]
+		event: SimpleEvent = sub[1]
 		assert event.status is True
 		assert event.result == {
 			"result": "success",
 			"name": "handler_2",
 		}
 
-		event: SimpleEventingObj = sub[2]
+		event: SimpleEvent = sub[2]
 		assert event.status is False
 		assert event.result == {
 			"result": "fail",
@@ -428,7 +434,7 @@ class TestGeneral:
 
 	def test_parallel_events(self):
 		obj = MyEventObj("parallel")
-		obj.default_runtime = LocalParallelRuntime()
+		obj.default_runtime = LocalParallelEventRuntime()
 
 		res = obj.trigger("setup-4")
 
@@ -437,7 +443,7 @@ class TestGeneral:
 
 		assert isinstance(res.event_uid, UUID)
 		assert not res
-		assert res.status == EventsResult.STATUS_UNKNOWN
+		assert res.status == EventResults.STATUS_UNKNOWN
 
 		res.wait(5)
 
@@ -452,11 +458,11 @@ class TestGeneral:
 			)
 
 		assert res
-		assert res.status == EventsResult.STATUS_SUCCESS
+		assert res.status == EventResults.STATUS_SUCCESS
 
 	def test_mixed_mapped_runtimes(self):
 		obj = MyEventObj("parallel")
-		obj.set_mapped_runtime("setup-4", LocalParallelRuntime())
+		obj.set_mapped_runtime("setup-4", LocalParallelEventRuntime())
 
 		res_s4 = obj.trigger("setup-4")
 		res_s1 = obj.trigger("setup-1")
@@ -466,22 +472,22 @@ class TestGeneral:
 		assert len(res_s4.events) == 4
 
 	def test_runtime_checks(self):
-		obj = MyEventObj("runtime-checks", default_runtime=LocalSequentialRuntime)
+		obj = MyEventObj("runtime-checks", default_runtime=LocalSequentialEventRuntime)
 
-		obj.set_mapped_runtime("setup-4", LocalParallelRuntime())
+		obj.set_mapped_runtime("setup-4", LocalParallelEventRuntime())
 
 		res = obj.get_mapped_runtime("goose")
 		assert res is None
 
 		res = obj.get_mapped_runtime("setup-4")
-		assert isinstance(res, LocalParallelRuntime)
+		assert isinstance(res, LocalParallelEventRuntime)
 
 		res = obj.default_runtime
-		assert isinstance(res, LocalSequentialRuntime)
+		assert isinstance(res, LocalSequentialEventRuntime)
 
-		obj.default_runtime = LocalParallelRuntime
+		obj.default_runtime = LocalParallelEventRuntime
 		res = obj.default_runtime
-		assert isinstance(res, LocalParallelRuntime)
+		assert isinstance(res, LocalParallelEventRuntime)
 
 	def test_events_detachment(self):
 		obj = MyEventObj("events-detachment")
@@ -521,7 +527,7 @@ class TestGeneral:
 		obj = MyEventObj("simple-eventing-object")
 
 		res = obj.trigger(EventAfter)
-		event: SimpleEventingObj = list(res.events.values())[0]
+		event: SimpleEvent = list(res.events.values())[0]
 
 		event_str = str(event)
 		event_repr = repr(event)
@@ -542,7 +548,7 @@ class TestGeneral:
 		assert res_event_2.handler.__name__ == "_handler_2"
 		assert res_event_2.type is None
 
-		assert res.status == EventsResult.STATUS_FAIL
+		assert res.status == EventResults.STATUS_FAIL
 
 	def test_filter_by_type(self):
 		obj = MyEventObj("filter-by-type")
@@ -557,7 +563,12 @@ class TestGeneral:
 		assert res_event_2.type == "type-1"
 		assert res_event_2.handler.__name__ == "_handler_3"
 
-		assert res.status == EventsResult.STATUS_SUCCESS
+		assert res.status == EventResults.STATUS_SUCCESS
+
+		#
+
+		res = obj.trigger("setup-1", type="nothingness")
+		assert len(res.events) == 0
 
 	def test_filter_by_tags(self):
 		obj = MyEventObj("filter-by-tags")
@@ -572,7 +583,7 @@ class TestGeneral:
 		assert res_event_2.tags == ['tag-1', 'tag-common']
 		assert res_event_2.handler.__name__ == "_handler_2"
 
-		assert res.status == EventsResult.STATUS_FAIL
+		assert res.status == EventResults.STATUS_FAIL
 
 		#
 
@@ -586,4 +597,9 @@ class TestGeneral:
 		assert res_event_2.tags == ['tag-1', 'tag-1.1']
 		assert res_event_2.handler.__name__ == "_handler_3"
 
-		assert res.status == EventsResult.STATUS_SUCCESS
+		assert res.status == EventResults.STATUS_SUCCESS
+
+		#
+
+		res = obj.trigger("setup-1", tags=["tag-500"])
+		assert len(res.events) == 0

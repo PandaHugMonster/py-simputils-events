@@ -3,11 +3,11 @@ import uuid
 
 import natsort
 
-from simputils.events.AttachedEventHandler import AttachedEventHandler
-from simputils.events.SimpleEventingObj import SimpleEventingObj
+from simputils.events.auxiliary.AttachedEventHandler import AttachedEventHandler
+from simputils.events.SimpleEvent import SimpleEvent
 from simputils.events.auxiliary.helpers.eventing import prepare_runtime, extract_priority_handler_pairs, \
 	sort_pairs_by_priority
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 from simputils.events.types import EventRuntimeType, EventPriorityPair, EventHandlerType
 
 
@@ -19,7 +19,7 @@ class BasicEventingFoundation:
 	_attached_event_handlers: dict[str, dict[int, list[AttachedEventHandler]]] = None
 
 	@property
-	def default_runtime(self) -> BasicRuntime:
+	def default_runtime(self) -> BasicEventRuntime:
 		return self._default_runtime
 
 	@default_runtime.setter
@@ -75,8 +75,8 @@ class BasicEventingFoundation:
 		priority: int = 0,
 		type: str = None,
 		tags: str = None
-	) -> SimpleEventingObj:
-		return SimpleEventingObj(
+	) -> SimpleEvent:
+		return SimpleEvent(
 			name,
 			event_uid,
 			handler,

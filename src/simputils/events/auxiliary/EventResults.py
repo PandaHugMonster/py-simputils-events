@@ -2,10 +2,10 @@ from collections import OrderedDict
 from threading import Event, Lock
 from uuid import UUID
 
-from simputils.events.SimpleEventingObj import SimpleEventingObj
+from simputils.events.SimpleEvent import SimpleEvent
 
 
-class EventsResult:
+class EventResults:
 
 	STATUS_UNKNOWN = "unknown"
 	STATUS_FAIL = "fail"
@@ -14,7 +14,7 @@ class EventsResult:
 	_event_uid: UUID = None
 	_event_name: str = None
 
-	_events: OrderedDict[str, SimpleEventingObj] = None
+	_events: OrderedDict[str, SimpleEvent] = None
 
 	_updated_lock: Lock = None
 	_is_done_flag: Event = None
@@ -30,7 +30,7 @@ class EventsResult:
 		return self.STATUS_SUCCESS if self else self.STATUS_FAIL
 
 	@property
-	def events(self) -> OrderedDict[str, SimpleEventingObj]:
+	def events(self) -> OrderedDict[str, SimpleEvent]:
 		return self._events
 
 	def __init__(self, event_uid: UUID, event_name: str):
@@ -41,10 +41,10 @@ class EventsResult:
 		self._is_done_flag = Event()
 		self._events = OrderedDict()
 
-	def append(self, event: SimpleEventingObj, status: bool = None):
+	def append(self, event: SimpleEvent, status: bool = None):
 		self.set_status(event, status)
 
-	def set_status(self, event: SimpleEventingObj, status: bool | None):
+	def set_status(self, event: SimpleEvent, status: bool | None):
 		uid = str(event.obj_uid)
 
 		with self._updated_lock:

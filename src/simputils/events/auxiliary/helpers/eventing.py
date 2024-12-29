@@ -1,12 +1,12 @@
 import inspect
 from typing import Any, OrderedDict
 
-from simputils.events.AttachedEventHandler import AttachedEventHandler
+from simputils.events.auxiliary.AttachedEventHandler import AttachedEventHandler
 from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
 import natsort
 
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
 def is_permitted_by_params(handler: AttachedEventHandler, type: str, tags: list[str]) -> bool:
@@ -109,7 +109,7 @@ def sort_pairs_by_priority(pairs: list[list[str | int, Any]] | dict[str | int, A
 	)
 
 
-def prepare_runtime(runtime: type[BasicRuntime] | BasicRuntime):
+def prepare_runtime(runtime: type[BasicEventRuntime] | BasicEventRuntime):
 	if inspect.isclass(runtime):
 		return runtime()
 	return runtime

@@ -1,7 +1,7 @@
 import functools
 
 from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
 def on_event(
@@ -10,7 +10,7 @@ def on_event(
 	priority: int = 0,
 	type: str = None,
 	tags: list[str] = None,
-	runtime: type[BasicRuntime] | BasicRuntime = None
+	runtime: type[BasicEventRuntime] | BasicEventRuntime = None
 ):
 	"""
 	Attaching event to methods of classes inherited from `BasicEventingObject

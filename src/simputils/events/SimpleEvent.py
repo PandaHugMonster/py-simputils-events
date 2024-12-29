@@ -6,7 +6,7 @@ if TYPE_CHECKING:  # pragma: no cover
 	from simputils.events.types import EventHandlerType
 
 
-class SimpleEventingObj:
+class SimpleEvent:
 
 	_event_uid: UUID = None
 	_name: str = None

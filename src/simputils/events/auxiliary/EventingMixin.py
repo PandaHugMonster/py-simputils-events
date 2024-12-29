@@ -2,21 +2,21 @@ import functools
 from copy import copy
 from uuid import UUID
 
-from simputils.events.AttachedEventHandler import AttachedEventHandler
-from simputils.events.auxiliary.EventsResult import EventsResult
+from simputils.events.auxiliary.AttachedEventHandler import AttachedEventHandler
+from simputils.events.auxiliary.EventResults import EventResults
 from simputils.events.auxiliary.helpers.eventing import is_permitted_by_params, check_permitted_events, \
 	get_event_definition, add_event_handler, sort_pairs_by_priority, prepare_runtime
 from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
 from simputils.events.generic.BasicEventingFoundation import BasicEventingFoundation
-from simputils.events.generic.BasicRuntime import BasicRuntime
-from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
+from simputils.events.runtimes.LocalSequentialRuntime import LocalSequentialEventRuntime
 from simputils.events.types import EventRuntimeType, EventDefinitionType, EventHandlerType, EventRefType, \
 	EventPriorityPair
 
 
 class EventingMixin(BasicEventingFoundation):
 
-	_default_runtime: EventRuntimeType = LocalSequentialRuntime()
+	_default_runtime: EventRuntimeType = LocalSequentialEventRuntime()
 
 	def get_permitted_events(self) -> list[EventDefinitionType] | list | None:
 		return None
@@ -54,14 +54,14 @@ class EventingMixin(BasicEventingFoundation):
 	# noinspection PyShadowingBuiltins
 	def _trigger_exec(
 		self,
-		events_result: EventsResult,
+		events_result: EventResults,
 		event_name: str,
 		attached_handlers: list[AttachedEventHandler],
 		event_uid: UUID,
 		priority: int,
 		type: str,
 		tags: list[str],
-		runtime: BasicRuntime,
+		runtime: BasicEventRuntime,
 		data: dict
 	):
 		event_uid = copy(event_uid)
@@ -117,9 +117,9 @@ class EventingMixin(BasicEventingFoundation):
 		type: str = None,
 		tags: list[str] = None,
 		runtime: EventRuntimeType = None,
-	) -> EventsResult | None:
+	) -> EventResults | None:
 		event_uid = self._generate_event_uid()
-		events_result = EventsResult(event_uid, event_name)
+		events_result = EventResults(event_uid, event_name)
 
 		event_ref, event_name = get_event_definition(event_name)
 

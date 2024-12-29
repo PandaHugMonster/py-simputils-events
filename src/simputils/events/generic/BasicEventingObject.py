@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from simputils.events.auxiliary.EventingMixin import EventingMixin
 from simputils.events.base import on_event
 from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
-from simputils.events.generic.BasicRuntime import BasicRuntime
+from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
 
 
 class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
@@ -15,7 +15,7 @@ class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
 
 	def __init__(
 		self,
-		default_runtime: type[BasicRuntime] | BasicRuntime = None,
+		default_runtime: type[BasicEventRuntime] | BasicEventRuntime = None,
 		on_event_disabled: bool = False,
 		*args,
 		**kwargs
