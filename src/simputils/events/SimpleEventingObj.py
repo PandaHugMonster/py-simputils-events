@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid1
+
+if TYPE_CHECKING:  # pragma: no cover
+	from simputils.events.types import EventHandlerType
 
 
 class SimpleEventingObj:
@@ -19,6 +23,12 @@ class SimpleEventingObj:
 	_processed_at: datetime = None
 	_status: bool = None
 	_priority: int = None
+
+	_handler: "EventHandlerType" = None
+
+	@property
+	def handler(self) -> "EventHandlerType":
+		return self._handler
 
 	@property
 	def priority(self) -> int:
@@ -88,6 +98,7 @@ class SimpleEventingObj:
 			f'result="{self.result}" '
 			f'created_at="{self.created_at}" '
 			f'processed_at="{self.processed_at}" '
+			f'handler="{self.handler.__name__}" '
 			f'obj_uid="{self.obj_uid}" '
 			f'event_uid="{self.event_uid}">'
 		)
@@ -104,10 +115,12 @@ class SimpleEventingObj:
 			result = f" with result \"{self.result}\""
 		return f"Event \"{self.name}\"{status}{processed_at}{result}"
 
+	# noinspection PyShadowingBuiltins
 	def __init__(
 		self,
 		name: str,
 		event_uid: UUID,
+		handler: "EventHandlerType",
 		data: dict = None,
 		priority: int = 0,
 		type: str = None,
@@ -115,6 +128,7 @@ class SimpleEventingObj:
 	):
 		self._event_uid = event_uid
 		self._obj_uid = uuid1()
+		self._handler = handler
 		self._created_at = datetime.now(timezone.utc)
 		self._name = name
 		self._data = data

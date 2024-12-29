@@ -5,12 +5,13 @@ from uuid import UUID
 
 import pytest
 
-from simputils.SimpleEventManager import SimpleEventManager
+from simputils.events.SimpleEventManager import SimpleEventManager
 from simputils.events.AttachedEventHandler import AttachedEventHandler
 from simputils.events.SimpleEventingObj import SimpleEventingObj
 from simputils.events.auxiliary.EventsResult import EventsResult
 from simputils.events.base import on_event
 from simputils.events.definitions.EventAfter import EventAfter
+from simputils.events.definitions.EventBefore import EventBefore
 from simputils.events.exceptions.ActionMustBeConfirmed import ActionMustBeConfirmed
 from simputils.events.exceptions.NotPermittedEvent import NotPermittedEvent
 from simputils.events.generic.BasicEventingObject import BasicEventingObject
@@ -34,18 +35,18 @@ class MyEventObj(BasicEventingObject):
 	def get_permitted_events(self):
 		return self._permitted_events
 
-	@on_event("setup-1", priority=1, type="type-1", tags=["tag-1", "tag-1.1"])
+	@on_event("setup-1", priority=1, type="type-1", tags=["tag-1", "tag-1.1", "tag-common"])
 	def _handler_1(self, event: SimpleEventingObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 
-	@on_event("setup-1", priority=2)
+	@on_event("setup-1", priority=2, tags=["tag-1", "tag-common"])
 	def _handler_2(self, event: SimpleEventingObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
 		return False
 
-	@on_event("setup-1", priority=3)
+	@on_event("setup-1", priority=3, type="type-1", tags=["tag-1", "tag-1.1"])
 	def _handler_3(self, event: SimpleEventingObj):
 		handler_name = inspect.stack()[0][3]
 		resulting_list.append(handler_name)
@@ -160,13 +161,32 @@ class MyEventObj(BasicEventingObject):
 			"result": "AFTER 2",
 		}
 
+	@on_event(EventBefore, priority=17)
+	def _handler_before_1(self, event: SimpleEventingObj):
+		return {
+			"result": "BEFORE 1",
+		}
+
+	@on_event(EventBefore(), priority=18)
+	def _handler_before_2(self, event: SimpleEventingObj):
+		return {
+			"result": "BEFORE 2",
+		}
+
 
 class TestGeneral:
 
 	def test_attached_events_and_handlers(self):
 		obj = MyEventObj()
 		attached_events = obj.get_attached_events()
-		assert set(attached_events) == {"setup-1", "setup-2", "setup-3", "setup-4", "after"}
+		assert set(attached_events) == {
+			"setup-1",
+			"setup-2",
+			"setup-3",
+			"setup-4",
+			EventAfter().get_name(),
+			EventBefore().get_name()
+		}
 		for event_name in attached_events:
 			for aeh in obj.get_attached_event_handlers(event_name):
 				if event_name == "setup-1":
@@ -214,7 +234,7 @@ class TestGeneral:
 		assert event.name == "setup-1"
 		assert event.status is True
 		assert event.type == "type-1"
-		assert event.tags == ["tag-1", "tag-1.1"]
+		assert event.tags == ["tag-1", "tag-1.1", 'tag-common']
 
 		event: SimpleEventingObj = sub[1]
 		event2 = event
@@ -467,9 +487,16 @@ class TestGeneral:
 		obj = MyEventObj("events-detachment")
 
 		events = obj.get_attached_events()
-		assert set(events) == {"setup-1", "setup-2", "setup-3", "setup-4", "after"}
+		assert set(events) == {
+			"setup-1",
+			"setup-2",
+			"setup-3",
+			"setup-4",
+			EventAfter().get_name(), EventBefore().get_name()
+		}
 
-		obj.detach("after", True)
+		obj.detach(EventBefore, True)
+		obj.detach(EventAfter, True)
 		obj.detach("setup-1", True)
 		obj.detach("setup-3", True)
 
@@ -501,3 +528,62 @@ class TestGeneral:
 
 		assert isinstance(event_str, str)
 		assert isinstance(event_repr, str)
+
+	def test_no_filter(self):
+		obj = MyEventObj("no-filter")
+
+		res = obj.trigger("setup-1")
+		res_event_1 = list(res.events.values())[0]
+		res_event_2 = list(res.events.values())[1]
+
+		assert res_event_1.handler.__name__ == "_handler_1"
+		assert res_event_1.type == "type-1"
+
+		assert res_event_2.handler.__name__ == "_handler_2"
+		assert res_event_2.type is None
+
+		assert res.status == EventsResult.STATUS_FAIL
+
+	def test_filter_by_type(self):
+		obj = MyEventObj("filter-by-type")
+
+		res = obj.trigger("setup-1", type="type-1")
+		res_event_1 = list(res.events.values())[0]
+		res_event_2 = list(res.events.values())[1]
+
+		assert res_event_1.type == "type-1"
+		assert res_event_1.handler.__name__ == "_handler_1"
+
+		assert res_event_2.type == "type-1"
+		assert res_event_2.handler.__name__ == "_handler_3"
+
+		assert res.status == EventsResult.STATUS_SUCCESS
+
+	def test_filter_by_tags(self):
+		obj = MyEventObj("filter-by-tags")
+
+		res = obj.trigger("setup-1", tags=["tag-1"])
+		res_event_1 = list(res.events.values())[0]
+		res_event_2 = list(res.events.values())[1]
+
+		assert res_event_1.tags == ['tag-1', 'tag-1.1', 'tag-common']
+		assert res_event_1.handler.__name__ == "_handler_1"
+
+		assert res_event_2.tags == ['tag-1', 'tag-common']
+		assert res_event_2.handler.__name__ == "_handler_2"
+
+		assert res.status == EventsResult.STATUS_FAIL
+
+		#
+
+		res = obj.trigger("setup-1", tags=["tag-1.1"])
+		res_event_1 = list(res.events.values())[0]
+		res_event_2 = list(res.events.values())[1]
+
+		assert res_event_1.tags == ['tag-1', 'tag-1.1', 'tag-common']
+		assert res_event_1.handler.__name__ == "_handler_1"
+
+		assert res_event_2.tags == ['tag-1', 'tag-1.1']
+		assert res_event_2.handler.__name__ == "_handler_3"
+
+		assert res.status == EventsResult.STATUS_SUCCESS

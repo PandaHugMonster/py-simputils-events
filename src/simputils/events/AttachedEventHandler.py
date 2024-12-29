@@ -17,6 +17,11 @@ class AttachedEventHandler(RunnableObject):
 	_data: dict = None
 
 	_runtime: BasicRuntime = None
+	_priority: int = None
+
+	@property
+	def priority(self) -> int:
+		return self._priority
 
 	@property
 	def event_name(self) -> str:
@@ -50,6 +55,7 @@ class AttachedEventHandler(RunnableObject):
 		event_type: str = None,
 		event_tags: list[str] = None,
 		runtime: BasicRuntime = None,
+		priority: int = None,
 	):
 		self._event_name = event_name
 		self._handler = handler
@@ -57,6 +63,7 @@ class AttachedEventHandler(RunnableObject):
 		self._event_type = event_type
 		self._event_tags = event_tags
 		self._runtime = runtime
+		self._priority = priority
 
 	def run(self, event: SimpleEventingObj):
 		# NOTE  Result from handler. Can be only: None, True, False, dict
