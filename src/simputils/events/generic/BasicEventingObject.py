@@ -1,5 +1,6 @@
 import inspect
 from abc import ABCMeta, abstractmethod
+from inspect import isfunction
 
 from simputils.events.auxiliary.EventingMixin import EventingMixin
 from simputils.events.base import on_event
@@ -24,26 +25,29 @@ class BasicEventingObject(EventingMixin, metaclass=ABCMeta):
 
 		if not on_event_disabled:
 			for member_name in dir(self):
-				data = self._get_decorated_data(member_name)
-				if data is not None:
-					self.attach(**data)
+				member = getattr(self, member_name)
+				if hasattr(member, "simputils_events"):
+					# print(member.simputils_events)
+					for data in member.simputils_events:
+						self._attach_event(member, data)
+				# check = (
+				# 	inspect.ismethod(member)
+				# 	and "decor_type" in member.__dict__
+				# 	and member.__dict__["decor_type"] == "simputils"
+				# 	and member.__dict__["decorated_events"]
+				# )
+				# if not check:
+				# 	continue
+				# decorated_events = member.__dict__["decorated_events"]
+				# for data in decorated_events:
+				# 	self._attach_event(member, data)
 
-	def _get_decorated_data(self, member_name) -> dict | None:
-		member = getattr(self, member_name)
-		check = (
-			inspect.ismethod(member)
-			and "decor_type" in member.__dict__
-			and member.__dict__["decor_type"] == "simputils"
-			and member.__dict__["decorated_with"] == on_event.__name__
-		)
-		if check:
-			data = member.__dict__["decorated_data"]
-			data["handler"] = member
-			if isinstance(data["event_name"], type):
-				data["event_name"].runtime = data["event_name"]()
-			if isinstance(data["event_name"], BasicEventDefinition):
-				data["runtime"] = data["event_name"].get_runtime() or data["runtime"]
+	def _attach_event(self, member, data):
+		data["handler"] = member
 
-			return data
+		if isinstance(data["event_name"], type):
+			data["event_name"].runtime = data["event_name"]()
+		if isinstance(data["event_name"], BasicEventDefinition):
+			data["runtime"] = data["event_name"].get_runtime() or data["runtime"]
 
-		return None
+		self.attach(**data)

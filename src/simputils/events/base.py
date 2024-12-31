@@ -24,19 +24,25 @@ def on_event(
 	:return:
 	"""
 	def decorator(func):
-		func.decor_type = "simputils"
-		func.decorated_with = on_event.__name__
-		func.decorated_data = {
+		res = []
+		if hasattr(func, "simputils_events"):
+			res += func.simputils_events
+
+		res.append({
+			# "decorated_with": on_event.__name__,
 			"event_name": event_name,
 			"data": data,
 			"priority": priority,
 			"type": type,
 			"tags": tags,
 			"runtime": runtime,
-		}
+		})
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			return func(*args, **kwargs)  # pragma: no cover
+
+		wrapper.simputils_events = res
+
 		return wrapper
 	return decorator
