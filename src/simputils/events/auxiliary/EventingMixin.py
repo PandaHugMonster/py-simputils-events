@@ -182,3 +182,55 @@ class EventingMixin(BasicEventingFoundation):
 		event_names = self.get_attached_events()
 		for event_name in event_names:
 			self.detach(event_name, confirm)
+
+	def describe_event(
+		self,
+		event_name: EventRefType,
+		data: dict = None,
+		type: str = None,
+		tags: list[str] = None,
+		runtime: EventRuntimeType = None,
+	):
+		"""
+		Describe event Chains
+		:return:
+		"""
+		event_uid = self._generate_event_uid()
+		event_ref, event_name = get_event_definition(event_name)
+
+		attached_event_handlers = self._trigger_preprocess(
+			event_name,
+			self._attached_event_handlers,
+		)
+
+		res = []
+		for priority, attached_handlers in attached_event_handlers:
+			for aeh in attached_handlers:
+				if not is_permitted_by_params(aeh, type, tags):
+					continue
+
+				merged_data = aeh.data or {}
+				merged_data.update(copy(data) if data is not None else {})
+
+				_type = aeh.event_type or type
+				_tags = copy(aeh.event_tags or tags)
+
+				# current_runtime = prepare_runtime(
+				# 	aeh.runtime or runtime or self.default_runtime
+				# )
+
+				event = self._generate_event_object(
+					event_name,
+					event_uid,
+					aeh.handler,
+					merged_data,
+					priority,
+					_type,
+					_tags
+				)
+
+				res.append(event)
+		i = 1
+		for event in res:
+			print(f"{i}. ", event.handler.__name__)
+			i += 1
