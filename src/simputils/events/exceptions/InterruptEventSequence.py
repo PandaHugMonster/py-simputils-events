@@ -1,0 +1,4 @@
+
+
+class InterruptEventSequence(BaseException):
+	pass
