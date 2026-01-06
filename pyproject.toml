@@ -1,0 +1,28 @@
+[project]
+name = "py-simputils-events"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.14"
+dependencies = []
+
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+#minversion = "6.0"
+addopts = [
+    "-ra",
+]
+testpaths = [
+    "tests",
+]
+python_classes = "Test*"
+python_functions = "test_*"
+log_cli = true
+log_cli_level = "INFO"
+
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

@@ -25,7 +25,7 @@ class Eventful(metaclass=ABCMeta):
 			return event.value
 		return f"{event}"
 
-	def event_register(self, event: EventType, callback: Callable, **kwargs):
+	def on_event(self, event: EventType, callback: Callable, **kwargs):
 		if not isinstance(event, BasicEvent):
 			event = BasicEvent(self.__get_str_event(event))
 		if event.name not in self._event_callbacks:
@@ -35,7 +35,7 @@ class Eventful(metaclass=ABCMeta):
 		self._event_callbacks[event.name][event.uid] = (callback, kwargs)
 		return event
 
-	def event_delete(self, uid: UUID):
+	def event_del(self, uid: UUID):
 		if uid in self._events_cache_uid:
 			event = self._events_cache_uid[uid]
 			del self._event_callbacks[event.name][uid]
@@ -52,7 +52,7 @@ class Eventful(metaclass=ABCMeta):
 		self._event_callbacks = {}
 		self._events_cache_uid = {}
 
-	def event_trigger(self, event: EventType, *args, **kwargs):
+	def event_run(self, event: EventType, *args, **kwargs):
 		event = self.__get_str_event(event)
 		if event not in self._events_cache_name:
 			return

@@ -11,14 +11,14 @@ class MyEvents(str, Enum):
 	EVENT_ONE_AFTER = "evt-one-after"
 
 
-class MyObj(Eventful, metaclass=ABCMeta):
+class MyObj(Eventful):
 
 	def my_func(self):
-		self.event_trigger(MyEvents.EVENT_ONE_BEFORE)
-		self.event_trigger(MyEvents.EVENT_ONE_BEFORE, "one", "two", arg2=100, arg3=200)
+		self.event_run(MyEvents.EVENT_ONE_BEFORE)
+		self.event_run(MyEvents.EVENT_ONE_BEFORE, "one", "two", arg2=100, arg3=200)
 		print("MY FUNC HERE")
-		self.event_trigger(MyEvents.EVENT_ONE_AFTER)
-		self.event_trigger(MyEvents.EVENT_ONE_AFTER, "three", arg2=1000, arg3=2000)
+		self.event_run(MyEvents.EVENT_ONE_AFTER)
+		self.event_run(MyEvents.EVENT_ONE_AFTER, "three", arg2=1000, arg3=2000)
 
 def my_callback_before(event, *args, **kwargs):
 	print(f"My CALLBACK before: {event} | ", args, kwargs)
@@ -26,17 +26,18 @@ def my_callback_before(event, *args, **kwargs):
 def my_callback_after(event, *args, **kwargs):
 	print(f"My CALLBACK after: {event} | ", args, kwargs)
 
+
 obj = MyObj()
 
-uid1 = obj.event_register(MyEvents.EVENT_ONE_BEFORE, my_callback_before)
-obj.event_register(MyEvents.EVENT_ONE_BEFORE, my_callback_before, arg2="my-arg-2", arg3="my-arg-3")
+uid1 = obj.on_event(MyEvents.EVENT_ONE_BEFORE, my_callback_before)
+obj.on_event(MyEvents.EVENT_ONE_BEFORE, my_callback_before, arg2="my-arg-2", arg3="my-arg-3")
 
-uid2 = obj.event_register(MyEvents.EVENT_ONE_AFTER, my_callback_after)
-obj.event_register(MyEvents.EVENT_ONE_AFTER, my_callback_after, arg1="my-arg-1", arg2="my-arg-2")
+uid2 = obj.on_event(MyEvents.EVENT_ONE_AFTER, my_callback_after)
+obj.on_event(MyEvents.EVENT_ONE_AFTER, my_callback_after, arg1="my-arg-1", arg2="my-arg-2")
 
 obj.my_func()
-obj.event_delete(uid1)
-obj.event_delete(uid2)
+obj.event_del(uid1)
+obj.event_del(uid2)
 
 print("---------------------")
 
