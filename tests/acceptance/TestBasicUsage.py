@@ -7,20 +7,6 @@ from typing import Any
 from simputils.events.abstract.Eventful import Eventful
 
 
-#
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#
-#
-# handler = logging.StreamHandler()
-# handler.setFormatter(formatter)
-# _logger = logging.getLogger(__name__)
-# _logger.setLevel(logging.INFO)
-# _logger.addHandler(handler)
-# _logger.propagate = True
-# _logger = logging.getLogger(__name__)
-# _logger.propagate = True
-
-
 class _MyEvents(str, Enum):
     INIT = "evt-init"
     BEFORE = "evt-before"
