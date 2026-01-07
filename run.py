@@ -4,7 +4,7 @@ from enum import Enum
 
 from simputils.events.abstract.Eventful import Eventful
 from simputils.events.components.BasicEventCall import BasicEventCall
-from simputils.events.components.BasicEventsResult import BasicEventsResult
+from simputils.events.components.BasicEventResult import BasicEventResult
 from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
 
 
@@ -34,7 +34,7 @@ class MyObj(Eventful):
 		return self._preprocess_results(sub_res) + self._preprocess_results(sub_res_2)
 
 	@classmethod
-	def _preprocess_results(cls, sub_res: BasicEventsResult) -> list:
+	def _preprocess_results(cls, sub_res: BasicEventResult) -> list:
 		res = []
 		call: BasicEventCall
 		for call, call_res in sub_res:
@@ -60,7 +60,7 @@ def on_after(call: BasicEventCall, ts: datetime) -> list[str]:
 		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
 		f"Finished at: {ts}"
 	]
-	# raise InterruptEventSequence(res)
+	raise InterruptEventSequence(res)
 	return res
 
 

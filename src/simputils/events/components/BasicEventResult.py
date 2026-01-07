@@ -3,7 +3,7 @@ from typing import Any
 from simputils.events.components.BasicEventCall import BasicEventCall
 
 
-class BasicEventsResult:
+class BasicEventResult:
 
     _store: list[tuple[BasicEventCall, Any]] = None
     _pointer: int = 0
