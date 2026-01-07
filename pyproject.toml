@@ -7,6 +7,7 @@ keywords = [
 readme = "README.md"
 license = "MIT"
 classifiers = [
+
   # How mature is this project? Common values are
   #   3 - Alpha
   #   4 - Beta
