@@ -1,46 +1,81 @@
 #!/bin/env python3
-from abc import ABCMeta
+from datetime import datetime, timezone
 from enum import Enum
 
 from simputils.events.abstract.Eventful import Eventful
+from simputils.events.components.BasicEventCall import BasicEventCall
+from simputils.events.components.BasicEventsResult import BasicEventsResult
+from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
 
 
-class MyEvents(str, Enum):
+class MyEventEnum(str, Enum):
 
-	EVENT_ONE_BEFORE = "evt-one-before"
-	EVENT_ONE_AFTER = "evt-one-after"
+	BEFORE = "evt-before"
+	AFTER = "evt-after"
 
 
 class MyObj(Eventful):
 
-	def my_func(self):
-		self.event_run(MyEvents.EVENT_ONE_BEFORE)
-		self.event_run(MyEvents.EVENT_ONE_BEFORE, "one", "two", arg2=100, arg3=200)
-		print("MY FUNC HERE")
-		self.event_run(MyEvents.EVENT_ONE_AFTER)
-		self.event_run(MyEvents.EVENT_ONE_AFTER, "three", arg2=1000, arg3=2000)
+	@classmethod
+	def _display_summary(cls, sub_results: list):
+		for item in sub_results:
+			for desc in item:
+				print(">>> ", desc)
 
-def my_callback_before(event, *args, **kwargs):
-	print(f"My CALLBACK before: {event} | ", args, kwargs)
+	def prepare_data(self, name: str, surname: str, age: int):
+		sub_res = self.event_run(MyEventEnum.BEFORE, name, surname, age)
+		if sub_res:
+			self._display_summary(sub_res.results)
+		else:
+			print("No pre-processed description prepared")
 
-def my_callback_after(event, *args, **kwargs):
-	print(f"My CALLBACK after: {event} | ", args, kwargs)
+		sub_res_2 = self.event_run(MyEventEnum.AFTER, datetime.now(timezone.utc))
+
+		return self._preprocess_results(sub_res) + self._preprocess_results(sub_res_2)
+
+	@classmethod
+	def _preprocess_results(cls, sub_res: BasicEventsResult) -> list:
+		res = []
+		call: BasicEventCall
+		for call, call_res in sub_res:
+			if call_res is not None:
+				for item in call_res:
+					res.append(item)
+			if call.interrupted:
+				res.append(f"{call.callback.__name__}() INTERRUPTED")
+		return res
 
 
-obj = MyObj()
+def on_before(call: BasicEventCall, name: str, surname: str, age: int) -> list[str]:
+	res = [
+		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
+		f"Name: {name} {surname}",
+		f"Age: {age}"
+	]
+	return res
 
-uid1 = obj.on_event(MyEvents.EVENT_ONE_BEFORE, my_callback_before)
-obj.on_event(MyEvents.EVENT_ONE_BEFORE, my_callback_before, arg2="my-arg-2", arg3="my-arg-3")
 
-uid2 = obj.on_event(MyEvents.EVENT_ONE_AFTER, my_callback_after)
-obj.on_event(MyEvents.EVENT_ONE_AFTER, my_callback_after, arg1="my-arg-1", arg2="my-arg-2")
+def on_after(call: BasicEventCall, ts: datetime) -> list[str]:
+	res = [
+		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
+		f"Finished at: {ts}"
+	]
+	# raise InterruptEventSequence(res)
+	return res
 
-obj.my_func()
-obj.event_del(uid1)
-obj.event_del(uid2)
 
-print("---------------------")
+def main():
+	obj = MyObj()
+	obj.on_event(MyEventEnum.BEFORE, on_before)
+	obj.on_event(MyEventEnum.AFTER, on_after)
+	obj.on_event(MyEventEnum.AFTER, on_after)
 
-obj.my_func()
+	descriptions = obj.prepare_data("Ivan", "Ponomarev", 35)
 
-# obj.event_purge()
+	print(f"Resulting descriptions:")
+	for desc in descriptions:
+		print("##\t", desc)
+
+
+if __name__ == "__main__":
+	main()
