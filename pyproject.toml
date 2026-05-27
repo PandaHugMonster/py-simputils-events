@@ -1,5 +1,5 @@
 [project]
-name = "py-simputils-events"
+name = "simputils-events"
 description = "Infrastructure for attaching events to objects"
 keywords = [
     "event", "events", "simputils", "primitives"
@@ -33,7 +33,9 @@ version = "0.1.0"
 #dynamic = ["version"]
 
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "typing-extensions"
+]
 
 [tool.uv.build-backend]
 module-name = "simputils.events"

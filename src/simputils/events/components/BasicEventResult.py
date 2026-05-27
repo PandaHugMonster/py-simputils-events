@@ -5,20 +5,20 @@ from simputils.events.components.BasicEventCall import BasicEventCall
 
 class BasicEventResult:
 
-    _store: list[tuple[BasicEventCall, Any]] = None
+    _store: list[tuple[Any, BasicEventCall | None]] = None
     _pointer: int = 0
 
     def __init__(self):
         self._store = []
 
-    def append(self, call: BasicEventCall, result: Any):
-        self._store.append((call, result))
+    def append(self, result: Any, call: BasicEventCall | None = None):
+        self._store.append((result, call))
 
     def __iter__(self):
         self._pointer = 0
         return self
 
-    def __next__(self) -> tuple[BasicEventCall, Any]:
+    def __next__(self) -> tuple[Any, BasicEventCall | None]:
         try:
             res = self._store[self._pointer]
         except IndexError:
@@ -33,4 +33,4 @@ class BasicEventResult:
 
     @property
     def results(self) -> list[Any]:
-        return [r for c, r in self]
+        return [r for r, c in self]

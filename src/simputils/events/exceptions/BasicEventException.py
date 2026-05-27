@@ -1,0 +1,4 @@
+
+
+class BasicEventException(BaseException):
+	pass

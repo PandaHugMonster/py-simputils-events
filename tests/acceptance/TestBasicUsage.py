@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from typing import Any
 
-from simputils.events.abstract.Eventful import Eventful
+from simputils.events.mixins.Eventful import Eventful
 
 
 class _MyEvents(str, Enum):
@@ -30,20 +30,20 @@ class _MyObj(Eventful):
 
     def init(self, data: Any):
         self.init_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.INIT, self.init_ts, data=data)
+        self.trigger(_MyEvents.INIT, self.init_ts, data=data)
 
     def process(self, data: Any):
         self.process_start_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.BEFORE, self.process_start_ts, data=data)
+        self.trigger(_MyEvents.BEFORE, self.process_start_ts, data=data)
 
         logging.info("... Processing performed ...")
 
         self.process_end_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.AFTER, self.process_end_ts, data=data)
+        self.trigger(_MyEvents.AFTER, self.process_end_ts, data=data)
 
     def __del__(self):
         self.destruct_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.DESTRUCT, self.destruct_ts)
+        self.trigger(_MyEvents.DESTRUCT, self.destruct_ts)
 
 def _on_event_log(event, ts: datetime.datetime, data: Any = None):
     # TODO  `event` must be referring to an object representing event
@@ -60,8 +60,8 @@ class TestBasicUsage:
 
     def test_basic_usage(self, caplog):
         obj = _MyObj(name="Panda")
-        obj.on_event(_MyEvents.INIT, _on_event_log)
-        obj.on_event(_MyEvents.DESTRUCT, _on_event_log)
+        obj.on(_MyEvents.INIT, _on_event_log)
+        obj.on(_MyEvents.DESTRUCT, _on_event_log)
         data = "init test"
 
         obj.init(data)
