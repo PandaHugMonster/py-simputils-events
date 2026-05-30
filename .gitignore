@@ -121,6 +121,7 @@ celerybeat.pid
 
 # Environments
 .env
+venv
 .venv
 env/
 venv/
@@ -164,3 +165,5 @@ run.py
 
 .$**
 **.bkp
+.idea
+dist

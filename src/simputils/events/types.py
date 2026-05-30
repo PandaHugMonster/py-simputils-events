@@ -1,13 +1,9 @@
-from typing import Callable, Union, OrderedDict
+from collections.abc import Callable
+from enum import Enum
+from typing import Any, Concatenate
 
-from simputils.events.auxiliary.AttachedEventHandler import AttachedEventHandler
-from simputils.events.generic.BasicEventDefinition import BasicEventDefinition
-from simputils.events.generic.BasicEventHandler import BasicEventHandler
-from simputils.events.generic.BasicEventRuntime import BasicEventRuntime
+from simputils.events.components.BasicEvent import BasicEvent
+from simputils.events.components.BasicEventCall import BasicEventCall
 
-EventHandlerType = Union[BasicEventHandler, Callable]
-EventRuntimeType = Union[type[BasicEventRuntime], BasicEventRuntime]
-EventDefinitionType = Union[type[BasicEventDefinition], BasicEventDefinition]
-EventRefType = Union[str, type]
-EventPriorityPair = OrderedDict[int, AttachedEventHandler]
-# EventPriorityPair = list[int, AttachedEventHandler]
+EventType = str | Enum | BasicEvent
+EventCallType = Callable[Concatenate[BasicEventCall, ...], Any | None]

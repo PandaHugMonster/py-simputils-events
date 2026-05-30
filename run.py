@@ -1,10 +1,4 @@
-# Python SimpUtils Events
-
-[//]: # (TODO   Add more examples, documentation and use-cases)
-
-## An example
-
-```python
+#!/bin/env python3
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -14,13 +8,12 @@ from simputils.events.components.BasicEventResult import BasicEventResult
 from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
 
 
-# Creating event names as str-backed enum
 class MyEventEnum(str, Enum):
+
 	BEFORE = "evt-before"
 	AFTER = "evt-after"
 
 
-# Creating target class to which we will be attaching events
 class MyObj(Eventful):
 
 	@classmethod
@@ -52,7 +45,7 @@ class MyObj(Eventful):
 				res.append(f"{call.callback.__name__}() INTERRUPTED")
 		return res
 
-# Callback for "on_event" of "BEFORE"
+
 def on_before(call: BasicEventCall, name: str, surname: str, age: int) -> list[str]:
 	res = [
 		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
@@ -62,13 +55,12 @@ def on_before(call: BasicEventCall, name: str, surname: str, age: int) -> list[s
 	return res
 
 
-# Callback for "on_event" of "AFTER"
 def on_after(call: BasicEventCall, ts: datetime) -> list[str]:
 	res = [
 		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
 		f"Finished at: {ts}"
 	]
-	# raise InterruptEventSequence(res)
+	raise InterruptEventSequence(res)
 	return res
 
 
@@ -87,34 +79,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
-```
-
-Output:
-```text
->>>  [[event "<BasicEvent evt-before>" adjusted through `on_before()` callback]]
->>>  Name: Ivan Ponomarev
->>>  Age: 35
-Resulting descriptions:
-##	 [[event "<BasicEvent evt-before>" adjusted through `on_before()` callback]]
-##	 Name: Ivan Ponomarev
-##	 Age: 35
-##	 [[event "<BasicEvent evt-after>" adjusted through `on_after()` callback]]
-##	 Finished at: 2026-01-07 10:07:04.820497+00:00
-##	 [[event "<BasicEvent evt-after>" adjusted through `on_after()` callback]]
-##	 Finished at: 2026-01-07 10:07:04.820497+00:00
-```
-
-In case if `# raise InterruptEventSequence(res)` is uncommented, the output would be:
-```text
->>>  [[event "<BasicEvent evt-before>" adjusted through `on_before()` callback]]
->>>  Name: Ivan Ponomarev
->>>  Age: 35
-Resulting descriptions:
-##	 [[event "<BasicEvent evt-before>" adjusted through `on_before()` callback]]
-##	 Name: Ivan Ponomarev
-##	 Age: 35
-##	 [[event "<BasicEvent evt-after>" adjusted through `on_after()` callback]]
-##	 Finished at: 2026-01-07 10:08:08.767001+00:00
-##	 on_after() INTERRUPTED
-```
