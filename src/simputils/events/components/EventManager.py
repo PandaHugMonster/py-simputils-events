@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from typing_extensions import Any
+from typing_extensions import Any, Self
 
 from simputils.events.abstract.AbstractEventRuntime import AbstractEventRuntime
 from simputils.events.components.BasicEvent import BasicEvent
@@ -45,6 +45,20 @@ class EventManager:
 		default_runtimes = [LocalEventRuntime(), ]
 		runtimes = runtimes if runtimes else default_runtimes
 		self.set_event_runtimes(*runtimes)
+
+	def init(self) -> Self:
+		"""
+		Initialize event-manager and it's runtimes
+		:return:
+		"""
+		for runtime in self._runtimes:
+			runtime.init()
+
+		return self
+
+	def start(self):
+		for runtime in self._runtimes:
+			runtime.start()
 
 	def set_event_runtimes(
 		self,

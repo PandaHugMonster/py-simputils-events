@@ -3,8 +3,9 @@ import logging
 from uuid import uuid1, UUID
 
 from simputils.events.components.BasicEventCall import BasicEventCall
+from simputils.events.modules.distributed.adapters.GooglePubSubAdapter import GooglePubSubAdapter
 from simputils.events.mixins.EventfulMixin import EventfulMixin
-from simputils.events.runtimes.DummyEventRuntime import DummyEventRuntime
+from simputils.events.modules.distributed.DistributedEventRuntime import DistributedEventRuntime
 from simputils.events.runtimes.LocalEventRuntime import LocalEventRuntime
 
 # log_level = logging.DEBUG
@@ -59,11 +60,18 @@ if __name__ == "__main__":
 
 	obj = MyObjClass()
 
+	subscription = "projects/experiments-497610/subscriptions/exp-events"
+	topic = "projects/experiments-497610/topics/exp-events"
+
+	pub_sub_adapter = GooglePubSubAdapter(topic=topic)
+	pub_sub_adapter.create_topic(topic, exists_ok=True)
+
 	runtimes = [
-		DummyEventRuntime(skip_invoke_callbacks=False),
+		# DummyEventRuntime(skip_invoke_callbacks=False),
 
 		# DummyEventRuntime(skip_invoke_callbacks=True),
-		# LocalEventRuntime()
+		LocalEventRuntime(),
+		DistributedEventRuntime(pub_sub_adapter),
 	]
 	obj.event_manager.set_event_runtimes(*runtimes)
 

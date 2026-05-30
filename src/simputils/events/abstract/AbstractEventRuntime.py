@@ -34,3 +34,9 @@ class AbstractEventRuntime(metaclass=ABCMeta):
 		kwargs: dict | None = None,
 	) -> "BasicEventResult | None":
 		pass
+
+	def init(self):
+		pass
+
+	def start(self):
+		pass

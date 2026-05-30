@@ -11,6 +11,10 @@ from simputils.events.components.EventManager import EventManager
 from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
 from simputils.events.types import EventCallType
 
+
+_logger = logging.getLogger(__name__)
+
+
 class DummyEventRuntime(AbstractEventRuntime):
 
 	_callbacks: dict[UUID, list[tuple[EventCallType, dict]]]
@@ -46,7 +50,7 @@ class DummyEventRuntime(AbstractEventRuntime):
 		if not callbacks:
 			callbacks = []
 
-		logging.debug(
+		_logger.debug(
 			"Event \"%s\" Triggered with args: \"%s\" and kwargs: \"%s\". ",
 			event, args, kwargs
 		)
@@ -67,7 +71,7 @@ class DummyEventRuntime(AbstractEventRuntime):
 					break
 		else:
 			call_results = None
-			logging.debug("Callbacks \"%s\" invoking is skipped.", callbacks)
+			_logger.debug("Callbacks \"%s\" invoking is skipped.", callbacks)
 
 		res = events_result_class()
 
