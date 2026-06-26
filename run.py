@@ -112,3 +112,4 @@ if __name__ == "__main__":
 	logging.info("Deleted count: %i", len(deleted_extracts))
 
 
+
