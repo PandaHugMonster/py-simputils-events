@@ -36,6 +36,7 @@ class MyObjClass(EventfulMixin):
 		del self._data[uid]
 		self.trigger("after-del-item", self._data, uid)
 
+
 	def collapse_duplicates(self):
 		sub_results = self.trigger("before-collapse-duplicates", self._data)
 
