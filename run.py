@@ -110,3 +110,4 @@ if __name__ == "__main__":
 	logging.info("Deleted count: %i", len(deleted_extracts))
 	obj.collapse_duplicates()
 	logging.info("Deleted count: %i", len(deleted_extracts))
+
