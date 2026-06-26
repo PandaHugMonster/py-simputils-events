@@ -3,8 +3,9 @@ from collections.abc import Callable
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud import pubsub_v1
+from typing_extensions import Self
 
-from simputils.events.modules.distributed.abstract.AbstractDistributedAdapter import AbstractDistributedAdapter
+from simputils.events.abstract.AbstractDistributedAdapter import AbstractDistributedAdapter
 
 
 class GooglePubSubAdapter(AbstractDistributedAdapter):
@@ -34,8 +35,10 @@ class GooglePubSubAdapter(AbstractDistributedAdapter):
 				"Topic or Subscription names should be specified to enable publisher or subscriber"
 			)
 
-		self._publisher = pubsub_v1.PublisherClient() if topic and not subscription else None
-		self._subscriber = pubsub_v1.SubscriberClient() if not topic and subscription else None
+	def init(self) -> Self:
+		self._publisher = pubsub_v1.PublisherClient() if self._topic and not self._subscription else None
+		self._subscriber = pubsub_v1.SubscriberClient() if not self._topic and self._subscription else None
+		return self
 
 	def create_topic(self, name: str, exists_ok: bool = False):
 		if self._publisher is None:

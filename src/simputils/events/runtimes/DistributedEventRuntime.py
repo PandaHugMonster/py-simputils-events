@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from simputils.events.modules.distributed.abstract.AbstractDistributedAdapter import AbstractDistributedAdapter
+from simputils.events.abstract.AbstractDistributedAdapter import AbstractDistributedAdapter
 from simputils.events.abstract.AbstractEventRuntime import AbstractEventRuntime
 from simputils.events.components.BasicEvent import BasicEvent
 from simputils.events.components.BasicEventCall import BasicEventCall

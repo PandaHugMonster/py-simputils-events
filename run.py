@@ -3,9 +3,9 @@ import logging
 from uuid import uuid1, UUID
 
 from simputils.events.components.BasicEventCall import BasicEventCall
-from simputils.events.modules.distributed.adapters.GooglePubSubAdapter import GooglePubSubAdapter
+from simputils.events.modules.gcp.adapters.GooglePubSubAdapter import GooglePubSubAdapter
 from simputils.events.mixins.EventfulMixin import EventfulMixin
-from simputils.events.modules.distributed.DistributedEventRuntime import DistributedEventRuntime
+from simputils.events.runtimes.DistributedEventRuntime import DistributedEventRuntime
 from simputils.events.runtimes.LocalEventRuntime import LocalEventRuntime
 
 # log_level = logging.DEBUG
@@ -59,11 +59,14 @@ class MyObjClass(EventfulMixin):
 if __name__ == "__main__":
 
 	obj = MyObjClass()
+	# obj.event_manager = create_distributed_event_manager(
+	# 	GooglePubSubAdapter(topic=channel).init()
+	# )
 
 	subscription = "projects/experiments-497610/subscriptions/exp-events"
 	topic = "projects/experiments-497610/topics/exp-events"
 
-	pub_sub_adapter = GooglePubSubAdapter(topic=topic)
+	pub_sub_adapter = GooglePubSubAdapter(topic=topic).init()
 	pub_sub_adapter.create_topic(topic, exists_ok=True)
 
 	runtimes = [

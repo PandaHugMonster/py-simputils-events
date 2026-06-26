@@ -1,8 +1,8 @@
 #!/bin/env python3
 import logging
 
-from simputils.events.modules.distributed.enums.AdaptersEnum import AdaptersEnum
-from simputils.events.modules.distributed.helpers.generic import create_distributed_event_manager
+from simputils.events.helpers.generic import create_distributed_event_manager
+from simputils.events.modules.gcp.adapters.GooglePubSubAdapter import GooglePubSubAdapter
 
 # log_level = logging.DEBUG
 log_level = logging.INFO
@@ -17,7 +17,10 @@ if __name__ == "__main__":
 
 	channel = f"projects/{proj_name}-{proj_id}/subscriptions/{channel_name}"
 
-	em = create_distributed_event_manager(AdaptersEnum.GCP_PUB_SUB, sub_channel=channel)
+	# em = create_distributed_event_manager(AdaptersEnum.GCP_PUB_SUB, sub_channel=channel)
+	em = create_distributed_event_manager(
+		GooglePubSubAdapter(subscription=channel).init()
+	)
 
 	em.on_event("after-collapse-duplicates", )
 
