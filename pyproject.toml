@@ -50,18 +50,24 @@ build-backend = "uv_build"
 minversion = "9.0"
 addopts = [
     "-ra",
+    "-v",
+    "--cov=src",
+    "--cov-report=html:reports/html",
 ]
 testpaths = [
     "tests",
 ]
+python_files = "Test*"
 python_classes = "Test*"
 python_functions = "test_*"
+
 log_cli = true
 log_cli_level = "INFO"
 
-pythonpath = ["."]
+pythonpath = ["src"]
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-cov",
 ]
