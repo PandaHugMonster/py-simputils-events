@@ -1,81 +1,113 @@
 #!/bin/env python3
-from datetime import datetime, timezone
-from enum import Enum
+import logging
+from uuid import uuid1, UUID
 
-from simputils.events.abstract.Eventful import Eventful
 from simputils.events.components.BasicEventCall import BasicEventCall
-from simputils.events.components.BasicEventResult import BasicEventResult
-from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
+from simputils.events.modules.gcp.adapters.GooglePubSubAdapter import GooglePubSubAdapter
+from simputils.events.mixins.EventfulMixin import EventfulMixin
+from simputils.events.runtimes.DistributedEventRuntime import DistributedEventRuntime
+from simputils.events.runtimes.LocalEventRuntime import LocalEventRuntime
+
+# log_level = logging.DEBUG
+log_level = logging.INFO
+
+logging.basicConfig(level=log_level)
 
 
-class MyEventEnum(str, Enum):
+class MyObjClass(EventfulMixin):
 
-	BEFORE = "evt-before"
-	AFTER = "evt-after"
+	_data = None
 
+	def __init__(self):
+		self._data = {}
+		super().__init__()
 
-class MyObj(Eventful):
+	def add_item(self, item):
+		uid = uuid1()
 
-	@classmethod
-	def _display_summary(cls, sub_results: list):
-		for item in sub_results:
-			for desc in item:
-				print(">>> ", desc)
+		self.trigger("before-add-item", self._data, uid, item)
+		self._data[uid] = item
+		self.trigger("after-add-item", self._data, uid, item)
 
-	def prepare_data(self, name: str, surname: str, age: int):
-		sub_res = self.event_run(MyEventEnum.BEFORE, name, surname, age)
-		if sub_res:
-			self._display_summary(sub_res.results)
-		else:
-			print("No pre-processed description prepared")
+		return uid
 
-		sub_res_2 = self.event_run(MyEventEnum.AFTER, datetime.now(timezone.utc))
+	def del_item(self, uid: UUID):
+		self.trigger("before-del-item", self._data, uid, self._data[uid])
+		del self._data[uid]
+		self.trigger("after-del-item", self._data, uid)
 
-		return self._preprocess_results(sub_res) + self._preprocess_results(sub_res_2)
+	def collapse_duplicates(self):
+		sub_results = self.trigger("before-collapse-duplicates", self._data)
 
-	@classmethod
-	def _preprocess_results(cls, sub_res: BasicEventResult) -> list:
-		res = []
-		call: BasicEventCall
-		for call, call_res in sub_res:
-			if call_res is not None:
-				for item in call_res:
-					res.append(item)
-			if call.interrupted:
-				res.append(f"{call.callback.__name__}() INTERRUPTED")
-		return res
+		existing_values_cache = []
+		duplicates = []
+		for k, v in self._data.items():
+			if v in existing_values_cache:
+				duplicates.append(k)
+			else:
+				existing_values_cache.append(v)
 
+		for uid in duplicates:
+			self.del_item(uid)
 
-def on_before(call: BasicEventCall, name: str, surname: str, age: int) -> list[str]:
-	res = [
-		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
-		f"Name: {name} {surname}",
-		f"Age: {age}"
-	]
-	return res
+		self.trigger("after-collapse-duplicates", self._data)
 
-
-def on_after(call: BasicEventCall, ts: datetime) -> list[str]:
-	res = [
-		f"[[event \"{call.event}\" adjusted through `{call.callback.__name__}()` callback]]",
-		f"Finished at: {ts}"
-	]
-	raise InterruptEventSequence(res)
-	return res
-
-
-def main():
-	obj = MyObj()
-	obj.on_event(MyEventEnum.BEFORE, on_before)
-	obj.on_event(MyEventEnum.AFTER, on_after)
-	obj.on_event(MyEventEnum.AFTER, on_after)
-
-	descriptions = obj.prepare_data("Ivan", "Ponomarev", 35)
-
-	print(f"Resulting descriptions:")
-	for desc in descriptions:
-		print("##\t", desc)
+	def __str__(self):
+		return f"{self._data}"
 
 
 if __name__ == "__main__":
-	main()
+
+	obj = MyObjClass()
+	# obj.event_manager = create_distributed_event_manager(
+	# 	GooglePubSubAdapter(topic=channel).init()
+	# )
+
+	subscription = "projects/experiments-497610/subscriptions/exp-events"
+	topic = "projects/experiments-497610/topics/exp-events"
+
+	pub_sub_adapter = GooglePubSubAdapter(topic=topic).init()
+	pub_sub_adapter.create_topic(topic, exists_ok=True)
+
+	runtimes = [
+		# DummyEventRuntime(skip_invoke_callbacks=False),
+
+		# DummyEventRuntime(skip_invoke_callbacks=True),
+		LocalEventRuntime(),
+		DistributedEventRuntime(pub_sub_adapter),
+	]
+	obj.event_manager.set_event_runtimes(*runtimes)
+
+	deleted_extracts = {}
+
+	def evented_already_exists(evt: BasicEventCall, data: dict, uid: UUID, item):
+		if item in data.values():
+			logging.info("Record \"%s\" already exists with UID: \"%s\"", item, uid)
+			return False
+		return True
+	def evented_extract_deleted(evt: BasicEventCall, data: dict, uid: UUID, item):
+		deleted_extracts[uid] = item
+	def evented_log_deletion(evt: BasicEventCall, data: dict, uid: UUID, item):
+		logging.warning("-- Deleting \"%s\" with UID \"%s\"", item, uid)
+
+	obj.on("before-add-item", evented_already_exists)
+	obj.on("before-del-item", evented_extract_deleted)
+	obj.on("before-del-item", evented_log_deletion)
+
+	obj.add_item("My name is PandaHugMonster")
+	obj.add_item("I am 36 years old")
+	obj.add_item("My name is PandaHugMonster")
+	obj.add_item(22)
+	obj.add_item(22.0)
+	obj.add_item("22")
+	obj.add_item(33)
+	obj.add_item(33)
+	obj.add_item(33)
+	obj.add_item(True)
+	obj.add_item(True)
+	obj.add_item(False)
+
+	logging.info("Deleted count: %i", len(deleted_extracts))
+	obj.collapse_duplicates()
+	logging.info("Deleted count: %i", len(deleted_extracts))
+

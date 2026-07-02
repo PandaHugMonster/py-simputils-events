@@ -14,7 +14,7 @@ class BasicEvent:
 	def name(self) -> str:
 		return self._name
 
-	def __init__(self, name: str, *, uid: UUID = None):
+	def __init__(self, name: str, *, uid: UUID | None = None):
 		self._uid = uid or uuid1()
 		self._name = str(name)
 

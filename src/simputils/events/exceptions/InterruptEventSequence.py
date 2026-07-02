@@ -1,7 +1,9 @@
 from typing import Any
 
+from simputils.events.exceptions.BasicEventInterruption import BasicEventInterruption
 
-class InterruptEventSequence(BaseException):
+
+class InterruptEventSequence(BasicEventInterruption):
 	"""
 	Exception used to interrupt silently the event chain.
 

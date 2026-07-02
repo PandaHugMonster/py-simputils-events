@@ -4,7 +4,8 @@ import re
 from enum import Enum
 from typing import Any
 
-from simputils.events.abstract.Eventful import Eventful
+from simputils.events.components.BasicEventCall import BasicEventCall
+from simputils.events.mixins.EventfulMixin import EventfulMixin
 
 
 class _MyEvents(str, Enum):
@@ -14,9 +15,9 @@ class _MyEvents(str, Enum):
     DESTRUCT = "evt-destruct"
 
 
-class _MyObj(Eventful):
+class _MyObj(EventfulMixin):
 
-    name: str = None
+    name: str | None = None
     init_ts: datetime.datetime = None
     process_start_ts: datetime.datetime = None
     process_end_ts: datetime.datetime = None
@@ -30,38 +31,44 @@ class _MyObj(Eventful):
 
     def init(self, data: Any):
         self.init_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.INIT, self.init_ts, data=data)
+        self.trigger(_MyEvents.INIT, self.init_ts, data=data)
 
     def process(self, data: Any):
         self.process_start_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.BEFORE, self.process_start_ts, data=data)
+        self.trigger(_MyEvents.BEFORE, self.process_start_ts, data=data)
 
         logging.info("... Processing performed ...")
 
         self.process_end_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.AFTER, self.process_end_ts, data=data)
+        self.trigger(_MyEvents.AFTER, self.process_end_ts, data=data)
 
     def __del__(self):
         self.destruct_ts = datetime.datetime.now()
-        self.event_run(_MyEvents.DESTRUCT, self.destruct_ts)
+        self.trigger(_MyEvents.DESTRUCT, self.destruct_ts)
 
-def _on_event_log(event, ts: datetime.datetime, data: Any = None):
+def _on_event_log(event: BasicEventCall, ts: datetime.datetime, data: Any = None):
     # TODO  `event` must be referring to an object representing event
     #       with all the necessary references on target objects
-    logging.info("event=%s; ts=%s; data=%s", event, ts, data)
+    logging.info("event=%s; ts=%s; data=%s", event.event.name, ts, data)
 
 
 def check_log_message(caplog, event: _MyEvents, data: Any = None, pattern: str = None):
     pattern = pattern or r".*event=%s; ts=[\d\s:.-]*; data=%s.*"
-    return any([re.match(pattern % (event.value, data), msg) is not None for msg in caplog.messages])
+    for msg in caplog.messages:
+        expected_pattern = pattern % (event.value, data)
+        sub = re.match(expected_pattern, msg)
+        if sub is not None:
+            return True
+    return False
+    # return any([re.match(pattern % (event.value, data), msg) is not None for msg in caplog.messages])
 
 
 class TestBasicUsage:
 
     def test_basic_usage(self, caplog):
         obj = _MyObj(name="Panda")
-        obj.on_event(_MyEvents.INIT, _on_event_log)
-        obj.on_event(_MyEvents.DESTRUCT, _on_event_log)
+        obj.on(_MyEvents.INIT, _on_event_log)
+        obj.on(_MyEvents.DESTRUCT, _on_event_log)
         data = "init test"
 
         obj.init(data)

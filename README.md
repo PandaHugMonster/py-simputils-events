@@ -8,7 +8,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from simputils.events.abstract.Eventful import Eventful
+from simputils.events.mixins.Eventful import Eventful
 from simputils.events.components.BasicEventCall import BasicEventCall
 from simputils.events.components.BasicEventResult import BasicEventResult
 from simputils.events.exceptions.InterruptEventSequence import InterruptEventSequence
@@ -30,13 +30,13 @@ class MyObj(Eventful):
 				print(">>> ", desc)
 
 	def prepare_data(self, name: str, surname: str, age: int):
-		sub_res = self.event_run(MyEventEnum.BEFORE, name, surname, age)
+		sub_res = self.trigger(MyEventEnum.BEFORE, name, surname, age)
 		if sub_res:
 			self._display_summary(sub_res.results)
 		else:
 			print("No pre-processed description prepared")
 
-		sub_res_2 = self.event_run(MyEventEnum.AFTER, datetime.now(timezone.utc))
+		sub_res_2 = self.trigger(MyEventEnum.AFTER, datetime.now(timezone.utc))
 
 		return self._preprocess_results(sub_res) + self._preprocess_results(sub_res_2)
 
@@ -51,6 +51,7 @@ class MyObj(Eventful):
 			if call.interrupted:
 				res.append(f"{call.callback.__name__}() INTERRUPTED")
 		return res
+
 
 # Callback for "on_event" of "BEFORE"
 def on_before(call: BasicEventCall, name: str, surname: str, age: int) -> list[str]:
@@ -74,9 +75,9 @@ def on_after(call: BasicEventCall, ts: datetime) -> list[str]:
 
 def main():
 	obj = MyObj()
-	obj.on_event(MyEventEnum.BEFORE, on_before)
-	obj.on_event(MyEventEnum.AFTER, on_after)
-	obj.on_event(MyEventEnum.AFTER, on_after)
+	obj.on(MyEventEnum.BEFORE, on_before)
+	obj.on(MyEventEnum.AFTER, on_after)
+	obj.on(MyEventEnum.AFTER, on_after)
 
 	descriptions = obj.prepare_data("Ivan", "Ponomarev", 35)
 
